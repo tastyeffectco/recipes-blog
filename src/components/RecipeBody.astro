@@ -1,0 +1,89 @@
+---
+const { recipe } = Astro.props;
+const { excerpt, ingredients, instructions, tips, nutrition } = recipe;
+---
+
+<div id="recipe" class="recipe-content">
+  {excerpt && (
+    <section class="recipe-intro">
+      <p class="recipe-description">{excerpt}</p>
+    </section>
+  )}
+  
+  {ingredients && ingredients.length > 0 && (
+    <section class="ingredients-section">
+      <h2>Ingredients</h2>
+      <ul class="ingredients-list">
+        {ingredients.map((ingredient) => (
+          <li>{ingredient}</li>
+        ))}
+      </ul>
+    </section>
+  )}
+  
+  {instructions && instructions.length > 0 && (
+    <section class="instructions-section">
+      <h2>Instructions</h2>
+      <ol class="instructions-list">
+        {instructions.map((instruction) => (
+          <li>{instruction}</li>
+        ))}
+      </ol>
+    </section>
+  )}
+  
+  {tips && tips.length > 0 && (
+    <section class="tips-section">
+      <h2>Tips & Notes</h2>
+      <ul class="tips-list">
+        {tips.map((tip) => (
+          <li>{tip}</li>
+        ))}
+      </ul>
+    </section>
+  )}
+  
+  {nutrition && (
+    <section class="nutrition-section">
+      <h2>Nutrition Information</h2>
+      <div class="nutrition-grid">
+        {nutrition.calories && (
+          <div class="nutrition-item">
+            <span class="nutrition-label">Calories</span>
+            <span class="nutrition-value">{nutrition.calories}</span>
+          </div>
+        )}
+        {nutrition.protein && (
+          <div class="nutrition-item">
+            <span class="nutrition-label">Protein</span>
+            <span class="nutrition-value">{nutrition.protein}</span>
+          </div>
+        )}
+        {nutrition.carbs && (
+          <div class="nutrition-item">
+            <span class="nutrition-label">Carbs</span>
+            <span class="nutrition-value">{nutrition.carbs}</span>
+          </div>
+        )}
+        {nutrition.fat && (
+          <div class="nutrition-item">
+            <span class="nutrition-label">Fat</span>
+            <span class="nutrition-value">{nutrition.fat}</span>
+          </div>
+        )}
+        {nutrition.fiber && (
+          <div class="nutrition-item">
+            <span class="nutrition-label">Fiber</span>
+            <span class="nutrition-value">{nutrition.fiber}</span>
+          </div>
+        )}
+        {nutrition.sugar && (
+          <div class="nutrition-item">
+            <span class="nutrition-label">Sugar</span>
+            <span class="nutrition-value">{nutrition.sugar}</span>
+          </div>
+        )}
+      </div>
+    </section>
+  )}
+</div> 

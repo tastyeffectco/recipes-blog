@@ -1,0 +1,968 @@
+---
+import { getAllRecipeSlugs, getRecipeBySlug, getSiteSettings, getRelatedRecipes } from '../../lib/sanity.js';
+import SVGSymbols from '../../components/SVGSymbols.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import '../../styles/main.css';
+
+export async function getStaticPaths() {
+  const slugs = await getAllRecipeSlugs();
+  
+  const paths = await Promise.all(
+    slugs.map(async (item) => {
+      const recipe = await getRecipeBySlug(item.slug);
+      const siteSettings = await getSiteSettings();
+      const relatedRecipes = await getRelatedRecipes(item.slug);
+      return {
+        params: {
+          slug: item.slug
+        },
+        props: {
+          recipe,
+          siteSettings,
+          relatedRecipes
+        }
+      };
+    })
+  );
+  
+  return paths;
+}
+
+const { recipe, siteSettings, relatedRecipes } = Astro.props;
+const { 
+  title, 
+  excerpt, 
+  mainImage, 
+  author, 
+  categories, 
+  publishedAt, 
+  prepTime, 
+  cookTime, 
+  servings, 
+  difficulty 
+} = recipe;
+
+// Use site settings for enhanced metadata
+const siteName = siteSettings?.siteName || 'Recipe Blog';
+const siteTagline = siteSettings?.tagline || 'Delicious homemade recipes';
+const siteDomain = siteSettings?.domain || 'localhost:3000';
+const siteUrl = `https://${siteDomain}`;
+
+const pageTitle = `${title} - ${siteName}`;
+const pageDescription = excerpt || siteSettings?.defaultDescription || 'A delicious recipe with step-by-step instructions';
+// Format date to match target: "Wed, 18 Jun 2025 16:58:15 GMT"
+const formatUpdatedDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  
+  const day = days[date.getUTCDay()];
+  const dayNum = date.getUTCDate().toString().padStart(2, '0');
+  const month = months[date.getUTCMonth()];
+  const year = date.getUTCFullYear();
+  const hours = date.getUTCHours().toString().padStart(2, '0');
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+  const seconds = date.getUTCSeconds().toString().padStart(2, '0');
+  
+  return `${day}, ${dayNum} ${month} ${year} ${hours}:${minutes}:${seconds} GMT`;
+};
+
+const formattedDate = formatUpdatedDate(recipe._updatedAt);
+
+// Get asset ID from Sanity image asset (matching download script format)
+const getAssetId = (image) => {
+  if (!image || !image.asset) return null;
+  
+  // If we have asset ID directly
+  if (image.asset._id) {
+    return image.asset._id;
+  }
+  
+  // If we have an asset reference - use the full reference format to match download script
+  if (image.asset._ref) {
+    const ref = image.asset._ref;
+    try {
+      // Return the full reference format to match downloaded filenames
+      return ref;
+    } catch (error) {
+      return null;
+    }
+  }
+  
+  return null;
+};
+
+// Get image URL from Sanity image asset
+const getImageUrl = (image) => {
+  if (!image || !image.asset) return null;
+  
+  // If we have a direct URL, use it
+  if (image.asset.url) {
+    return image.asset.url;
+  }
+  
+  // If we have an asset reference, build the URL
+  if (image.asset._ref) {
+    const ref = image.asset._ref;
+    const [, id, dimensions, format] = ref.match(/^image-([a-f\d]+)-(\d+x\d+)-(\w+)$/);
+    return `https://cdn.sanity.io/images/${import.meta.env.SANITY_PROJECT_ID}/production/${id}-${dimensions}.${format}`;
+  }
+  
+  return null;
+};
+
+// Check if local image exists
+const hasLocalImage = (assetId) => {
+  if (!assetId) return false;
+  
+  try {
+    // In build time, we can't access the file system directly
+    // This will be handled by the optimized image URL helper
+    return true; // Assume local images exist after build
+  } catch (error) {
+    return false;
+  }
+};
+
+// Optimized image URL helper with local and CDN fallback
+const getOptimizedImageUrl = (image, options = {}) => {
+  if (!image || !image.asset) return null;
+  
+  const assetId = getAssetId(image);
+  const baseUrl = getImageUrl(image);
+  
+  if (!baseUrl) return null;
+  
+  // Default options (for future CDN CGI use)
+  const {
+    width = 480,
+    fit = 'contain',
+    format = 'auto'
+  } = options;
+  
+  // First try: Use local image if available (no CDN CGI for now)
+  if (assetId) {
+    const localPath = `/assets/images/${assetId}.webp`;
+    return localPath;
+  }
+  
+  // Fallback to original Sanity URL
+  return baseUrl;
+  
+  // TODO: Enable CDN CGI optimization in production
+  // // First try: Check for local image
+  // if (assetId) {
+  //   const localPath = `/assets/images/${assetId}.webp`;
+  //   
+  //   try {
+  //     // Try to generate CDN CGI optimized URL with local path
+  //     const optimizedLocalUrl = `/cdn-cgi/image/fit=${fit},width=${width},format=${format}${localPath}`;
+  //     return optimizedLocalUrl;
+  //   } catch (error) {
+  //     // Fallback to direct local path
+  //     return localPath;
+  //   }
+  // }
+  // 
+  // // Second try: CDN CGI with remote URL
+  // try {
+  //   const optimizedUrl = `/cdn-cgi/image/fit=${fit},width=${width},format=${format}${baseUrl}`;
+  //   return optimizedUrl;
+  // } catch (error) {
+  //   // Final fallback: Original URL
+  //   return baseUrl;
+  // }
+};
+
+const heroImageUrl = getOptimizedImageUrl(mainImage);
+const authorImageUrl = author?.image ? getOptimizedImageUrl(author.image) : null;
+
+// Get article image URLs
+const firstArticleImageUrl = recipe.articleContent?.firstImage ? getOptimizedImageUrl(recipe.articleContent.firstImage) : null;
+const secondArticleImageUrl = recipe.articleContent?.secondImage ? getOptimizedImageUrl(recipe.articleContent.secondImage) : null;
+
+// Generate JSON-LD structured data
+const jsonLd = [
+  {
+    "@context": "http://schema.org",
+    "@type": "Recipe",
+    "publisher": {
+      "@type": "Organization",
+      "url": siteUrl,
+      "name": siteName,
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${siteUrl}/assets/drawable/logo.svg`,
+        "width": 600,
+        "height": 60
+      }
+    },
+    "author": author ? {
+      "@type": "Person",
+      "name": author.name,
+      "jobTitle": "Recipe Developer",
+      "url": `${siteUrl}/authors/${author.slug.current}`,
+      ...(authorImageUrl && { "image": [authorImageUrl] })
+    } : undefined,
+    "url": `${siteUrl}/recipes/${recipe.slug.current}`,
+    "name": title,
+    "datePublished": publishedAt || recipe._createdAt,
+    "description": excerpt,
+    "recipeCategory": categories?.[0]?.title,
+    "recipeCuisine": recipe.cuisine,
+    "prepTime": prepTime ? `PT${prepTime}M` : undefined,
+    "cookTime": cookTime ? `PT${cookTime}M` : undefined,
+    "totalTime": recipe.totalTime || (prepTime && cookTime ? `PT${prepTime + cookTime}M` : undefined),
+    "nutrition": recipe.nutrition ? {
+      "@type": "NutritionInformation",
+      "calories": `${recipe.nutrition.calories} calories`,
+      ...(recipe.nutrition.protein && { "proteinContent": `${recipe.nutrition.protein}g` }),
+      ...(recipe.nutrition.fat && { "fatContent": `${recipe.nutrition.fat}g` }),
+      ...(recipe.nutrition.carbs && { "carbohydrateContent": `${recipe.nutrition.carbs}g` })
+    } : undefined,
+    "recipeYield": recipe.yield || `${servings} servings`,
+    ...(heroImageUrl && { "image": [heroImageUrl] }),
+    "recipeIngredient": recipe.ingredients || [],
+    "recipeInstructions": recipe.instructions ? recipe.instructions.map((instruction, index) => ({
+      "@type": "HowToStep",
+      "name": `Step ${index + 1}`,
+      "text": instruction,
+      "url": `${siteUrl}/recipes/${recipe.slug.current}#instruction-${index + 1}`
+    })) : []
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": siteUrl
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Recipes",
+        "item": `${siteUrl}/recipes`
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": title
+      }
+    ]
+  }
+].filter(Boolean); // Remove undefined entries
+---
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="generator" content={Astro.generator} />
+  
+  <title>{pageTitle}</title>
+  <meta name="description" content={pageDescription} />
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content={Astro.url} />
+  <meta property="og:title" content={pageTitle} />
+  <meta property="og:description" content={pageDescription} />
+  <meta property="og:image" content={heroImageUrl || (siteSettings?.ogImage ? getImageUrl(siteSettings.ogImage) : `${siteUrl}/favicon.svg`)} />
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content={Astro.url} />
+  <meta property="twitter:title" content={pageTitle} />
+  <meta property="twitter:description" content={pageDescription} />
+  <meta property="twitter:image" content={heroImageUrl || (siteSettings?.ogImage ? getImageUrl(siteSettings.ogImage) : `${siteUrl}/favicon.svg`)} />
+  
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  
+  <!-- JavaScript Functions -->
+  <script>
+    function scrollToElement(id) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  </script>
+</head>
+<body>
+  <SVGSymbols />
+  <Header siteName={siteName} siteTagline={siteTagline} />
+
+  <main id="main" class="main">
+    <!-- Landing -->
+    <section class="landing">
+      <div class="container">
+        <div class="landing__wrapper">
+          <div class="landing__content">
+            <ol class="breadcrumb txt-s">
+              <li class="breadcrumb__item">
+                <a href="/" title="Easy, Delicious Recipes for Every Family Meal">Home</a>
+              </li>
+              <li class="breadcrumb__item">
+                <a href="/recipes" title="All Recipes">Recipes</a>
+              </li>
+              <li class="breadcrumb__item">
+                <span>{title}</span>
+              </li>
+            </ol>
+            
+            <h1 class="landing__title txt-xxxl">{title}</h1>
+            
+            {categories && categories.length > 0 && (
+              <p class="txt-l">
+                Featured in: 
+                <a href={`/categories/${categories[0].slug.current}`} title={`${categories[0].title} - ${categories[0].description || 'Recipe Collection'}`}>
+                  {categories[0].title}
+                </a>
+              </p>
+            )}
+            
+            {excerpt && (
+              <div class="landing__tldr txt-l">
+                <p>{excerpt}</p>
+              </div>
+            )}
+            
+            <div class="actions txt-m">
+              <a class="icon-wrapper" 
+                 href={`https://pinterest.com/pin/create/button/?url=${encodeURIComponent(Astro.url.toString())}`}
+                 rel="noopener noreferrer" 
+                 target="_blank" 
+                 title={`Pin it - ${title}`}>
+                <svg class="icon"><use href="#icon-pinterest"></use></svg>
+                <span>Pin it</span>
+              </a>
+              <a class="icon-wrapper" 
+                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(Astro.url.toString())}`}
+                 rel="noopener noreferrer" 
+                 target="_blank" 
+                 title={`Share it - ${title}`}>
+                <svg class="icon"><use href="#icon-facebook"></use></svg>
+                <span>Share it</span>
+              </a>
+              <a class="icon-wrapper" 
+                 href={`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(Astro.url.toString())}`}
+                 rel="noopener noreferrer" 
+                 title={`Send it - ${title}`}>
+                <svg class="icon"><use href="#icon-email"></use></svg>
+                <span>Send it</span>
+              </a>
+              <a class="icon-wrapper" 
+                 href="#" 
+                 title={`Print it - ${title}`}>
+                <svg class="icon"><use href="#icon-print"></use></svg>
+                <span>Print it</span>
+              </a>
+              <a class="icon-wrapper" 
+                 onclick="scrollToElement('recipe'); return false;" 
+                 aria-label="Jump To Recipe">
+                <svg class="icon"><use href="#icon-arrow-down"></use></svg>
+                <span>Jump To Recipe</span>
+              </a>
+            </div>
+            
+            {author && (
+              <div class="meta">
+                {authorImageUrl && (
+                                      <a href={`/authors/${author.slug.current}`} title={`${author.name} - ${author.bio2 || 'Recipe Author'}`}>
+                      <img class="meta__img" 
+                           width="160" 
+                           height="160" 
+                           alt={`${author.name} profile picture`} 
+                           src={authorImageUrl}
+                           loading="lazy" />
+                    </a>
+                )}
+                <div class="meta__content txt-s">
+                  <div>
+                    <span>By </span>
+                    <a href={`/authors/${author.slug.current}`} title={`${author.name} - ${author.bio2 || 'Recipe Author'}`}>
+                      <strong>{author.name}</strong>
+                    </a>
+                  </div>
+                  {formattedDate && (
+                    <div>
+                      <span>Updated on {formattedDate}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- end Landing -->
+    
+    <!-- Content -->
+    <section class="container pi-sm-none">
+      <div class="container__wrapper">
+        <div class="template-main-sidebar">
+          <!-- ContentMain -->
+          <div class="template-main-sidebar__main">
+            <!-- Article -->
+            <article class="article">
+              <!-- MainFigure -->
+              {heroImageUrl && (
+                <figure class="txt-s pin-wrapper">
+                  <img alt={title} loading="lazy" decoding="async"
+                    width="1024" height="1024"
+                    src={heroImageUrl} />
+                  <figcaption>{title} | Recipe Blog</figcaption>
+                </figure>
+              )}
+              
+              <!-- ArticleWrapper -->
+              <div class="article__wrapper">
+                {recipe.articleContent && (
+                  <>
+                    <!-- Intro Paragraph -->
+                    {recipe.articleContent.introParagraph && (
+                      <p>{recipe.articleContent.introParagraph}</p>
+                    )}
+                    
+                    <!-- Why You'll Love This Recipe -->
+                    {recipe.articleContent.whyLoveThis && recipe.articleContent.whyLoveThis.length > 0 && (
+                      <aside id="paragraph-2" class="note">
+                        <h2 class="icon-wrapper txt-xl">
+                          <svg class="icon icon--medium"><use href="#icon-note"></use></svg>
+                          <span>Why You'll Love This Recipe</span>
+                        </h2>
+                        <ul>
+                          {recipe.articleContent.whyLoveThis.map((point) => (
+                            <li>{point}</li>
+                          ))}
+                        </ul>
+                      </aside>
+                    )}
+                    
+                    <!-- Second Paragraph -->
+                    {recipe.articleContent.secondParagraph && (
+                      <p>{recipe.articleContent.secondParagraph}</p>
+                    )}
+                    
+                    <!-- Ingredients Section -->
+                    {recipe.articleContent.ingredientsList && recipe.articleContent.ingredientsList.length > 0 && (
+                      <>
+                        <h2 id="paragraph-4" class="txt-xxl">Ingredients</h2>
+                        <ul>
+                          {recipe.articleContent.ingredientsList.map((ingredient) => (
+                            <li>
+                              <strong>{ingredient.ingredientTitle}:</strong> {ingredient.ingredientDetail}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                    
+                    <!-- Instructions Section -->
+                    {recipe.articleContent.instructionsList && recipe.articleContent.instructionsList.length > 0 && (
+                      <>
+                        <h2 id="paragraph-6" class="txt-xxl">Instructions</h2>
+                        <dl>
+                          {recipe.articleContent.instructionsList.map((step) => (
+                            <>
+                              <dt><strong>{step.stepTitle}:</strong></dt>
+                              <dd>{step.stepDetail}</dd>
+                            </>
+                          ))}
+                        </dl>
+                      </>
+                    )}
+                    
+                    <!-- First Image -->
+                    {firstArticleImageUrl && (
+                      <figure id="paragraph-8" class="txt-s pin-wrapper">
+                        <img 
+                          alt={recipe.articleContent.firstImageAlt || title} 
+                          loading="lazy" 
+                          decoding="async" 
+                          width="1024" 
+                          height="1024" 
+                          src={firstArticleImageUrl} 
+                          sizes="(min-width: 1400px) 738px, (min-width: 1040px) calc(66.76vw - 63px), (min-width: 860px) calc(100vw - 64px), 717px" />
+                        <a class="pin icon-wrapper" 
+                           href={`https://www.pinterest.com/pin/create/button?media=${encodeURIComponent(firstArticleImageUrl)}&url=${encodeURIComponent(Astro.url.toString())}&description=${encodeURIComponent(recipe.articleContent.firstImageAlt || title)}`}
+                           target="_blank" 
+                           rel="noopener noreferrer" 
+                           title={`Pin it - ${recipe.articleContent.firstImageAlt || title}`}>
+                          <svg class="icon"><use href="#icon-pinterest"></use></svg>
+                          <span class="txt-s">Pin it</span>
+                        </a>
+                        <figcaption>{recipe.articleContent.firstImageCaption || title} | Recipe Blog</figcaption>
+                      </figure>
+                    )}
+                    
+                    <!-- You Must Know -->
+                    {recipe.articleContent.mustKnow && recipe.articleContent.mustKnow.length > 0 && (
+                      <aside id="paragraph-9" class="note">
+                        <h2 class="icon-wrapper txt-xl">
+                          <svg class="icon icon--medium"><use href="#icon-note"></use></svg>
+                          <span>You Must Know</span>
+                        </h2>
+                        <ul>
+                          {recipe.articleContent.mustKnow.map((tip) => (
+                            <li>{tip}</li>
+                          ))}
+                        </ul>
+                      </aside>
+                    )}
+                    
+                    <!-- Third Paragraph -->
+                    {recipe.articleContent.thirdParagraph && (
+                      <p>{recipe.articleContent.thirdParagraph}</p>
+                    )}
+                    
+                    <!-- Storage Tips -->
+                    {recipe.articleContent.storageTips && (
+                      <>
+                        <h2 id="paragraph-11" class="txt-xxl">Storage Tips</h2>
+                        <p>{recipe.articleContent.storageTips}</p>
+                      </>
+                    )}
+                    
+                    <!-- Ingredient Substitutions -->
+                    {recipe.articleContent.substitutionTips && (
+                      <>
+                        <h2 id="paragraph-13" class="txt-xxl">Ingredient Substitutions</h2>
+                        <p>{recipe.articleContent.substitutionTips}</p>
+                      </>
+                    )}
+                    
+                    <!-- Serving Suggestions -->
+                    {recipe.articleContent.servingSuggestions && (
+                      <>
+                        <h2 id="paragraph-15" class="txt-xxl">Serving Suggestions</h2>
+                        <p>{recipe.articleContent.servingSuggestions}</p>
+                      </>
+                    )}
+                    
+                    <!-- Cultural Context -->
+                    {recipe.articleContent.culturalContext && (
+                      <>
+                        <h2 id="paragraph-17" class="txt-xxl">Cultural and Historical Context</h2>
+                        <p>{recipe.articleContent.culturalContext}</p>
+                      </>
+                    )}
+                    
+                    <!-- Second Image -->
+                    {secondArticleImageUrl && (
+                      <figure id="paragraph-19" class="txt-s pin-wrapper">
+                        <img 
+                          alt={recipe.articleContent.secondImageAlt || title} 
+                          loading="lazy" 
+                          decoding="async" 
+                          width="1024" 
+                          height="1024" 
+                          src={secondArticleImageUrl} 
+                          sizes="(min-width: 1400px) 738px, (min-width: 1040px) calc(66.76vw - 63px), (min-width: 860px) calc(100vw - 64px), 717px" />
+                        <a class="pin icon-wrapper" 
+                           href={`https://www.pinterest.com/pin/create/button?media=${encodeURIComponent(secondArticleImageUrl)}&url=${encodeURIComponent(Astro.url.toString())}&description=${encodeURIComponent(recipe.articleContent.secondImageAlt || title)}`}
+                           target="_blank" 
+                           rel="noopener noreferrer" 
+                           title={`Pin it - ${recipe.articleContent.secondImageAlt || title}`}>
+                          <svg class="icon"><use href="#icon-pinterest"></use></svg>
+                          <span class="txt-s">Pin it</span>
+                        </a>
+                        <figcaption>{recipe.articleContent.secondImageCaption || title} | Recipe Blog</figcaption>
+                      </figure>
+                    )}
+                    
+                    <!-- Pro Tips -->
+                    {recipe.articleContent.proTips && recipe.articleContent.proTips.length > 0 && (
+                      <aside id="paragraph-20" class="note">
+                        <h2 class="icon-wrapper txt-xl">
+                          <svg class="icon icon--medium"><use href="#icon-note"></use></svg>
+                          <span>Pro Tips</span>
+                        </h2>
+                        <ul>
+                          {recipe.articleContent.proTips.map((tip) => (
+                            <li>{tip}</li>
+                          ))}
+                        </ul>
+                      </aside>
+                    )}
+                    
+                    <!-- Fourth Paragraph -->
+                    {recipe.articleContent.fourthParagraph && (
+                      <p>{recipe.articleContent.fourthParagraph}</p>
+                    )}
+                    
+                    <!-- FAQs -->
+                    {recipe.articleContent.faqs && recipe.articleContent.faqs.length > 0 && (
+                      <>
+                        <h2 id="faqs" class="txt-xxl">Frequently Asked Questions</h2>
+                        <dl>
+                          {recipe.articleContent.faqs.map((faq, index) => (
+                            <>
+                              <dt id={`faq-${index + 1}`}>→ {faq.question}</dt>
+                              <dd><p>{faq.answer}</p></dd>
+                            </>
+                          ))}
+                        </dl>
+                      </>
+                    )}
+                  </>
+                )}
+                
+                {!recipe.articleContent && (
+                  <p>Recipe article content coming soon...</p>
+                )}
+              </div>
+            </article>
+            <!-- end Article -->
+            
+            <!-- Recipe -->
+            <section id="recipe" class="recipe">
+              <div class="recipe__wrapper">
+                <h2 class="recipe__title txt-xxl">{title}</h2>
+                <p>{excerpt}</p>
+                
+                <!-- RecipeTimes -->
+                <div class="recipe__times txt-m">
+                  <div class="recipe__times-item">
+                    <div class="icon-wrapper">
+                      <svg class="icon"><use href="#icon-prep-time"></use></svg>
+                      <strong>Prep Time</strong>
+                    </div> 
+                    <span class="recipe__highlight" title="The length of time it takes to prepare ingredients and workspace for the dish">{prepTime || '15 Minutes'}</span>
+                  </div>
+                  <div class="recipe__times-item">
+                    <div class="icon-wrapper">
+                      <svg class="icon"><use href="#icon-cook-time"></use></svg>
+                      <strong>Cook Time</strong>
+                    </div> 
+                    <span class="recipe__highlight" title="The time it takes to actually cook the dish">{cookTime || '30 Minutes'}</span>
+                  </div>
+                  <div class="recipe__times-item">
+                    <div class="icon-wrapper">
+                      <svg class="icon"><use href="#icon-total-time"></use></svg>
+                      <strong>Total Time</strong>
+                    </div> 
+                    <span class="recipe__highlight" title="The total time it takes to prepare the cook the dish">{recipe.totalTime || '45 Minutes'}</span>
+                  </div>
+                </div>
+                <!-- end RecipeTimes -->
+                
+                <!-- RecipeInfos -->
+                <div id="recipe-info">
+                  {author && (
+                    <div class="icon-wrapper">
+                      <svg class="icon"><use href="#icon-chef"></use></svg>
+                      <div>
+                        <strong>By:</strong>
+                        <a href={`/authors/${author.slug.current}`} title={`${author.name} - ${author.bio2 || 'Recipe Author'}`}>{author.name}</a>
+                      </div>
+                    </div>
+                  )}
+                  <br>
+                  {categories && categories.length > 0 && (
+                    <div class="icon-wrapper">
+                      <svg class="icon"><use href="#icon-category"></use></svg>
+                      <div>
+                        <strong>Category:</strong>
+                        <a href={`/categories/${categories[0].slug.current}`} title={`${categories[0].title} - ${categories[0].description || 'Recipe Collection'}`}>{categories[0].title}</a>
+                      </div>
+                    </div>
+                  )}
+                  <br>
+                  <div class="icon-wrapper">
+                    <svg class="icon"><use href="#icon-difficulty"></use></svg>
+                    <div>
+                      <strong>Difficulty:</strong>
+                      <span class="recipe__highlight" title="Skill level">
+                        {difficulty || 'Easy'}
+                      </span>
+                    </div>
+                  </div>
+                  <br>
+                  <div class="icon-wrapper">
+                    <svg class="icon"><use href="#icon-cuisine"></use></svg>
+                    <div>
+                      <strong>Cuisine:</strong>
+                      <span class="recipe__highlight" title="The region associated with recipe">{recipe.cuisine || 'American'}</span>
+                    </div>
+                  </div>
+                  <br>
+                  <div class="icon-wrapper">
+                    <svg class="icon"><use href="#icon-yield"></use></svg>
+                    <div>
+                      <strong>Yield:</strong>
+                      <span class="recipe__highlight" title="The quantity produced by the recipe">
+                        {recipe.yield || `${servings || '4'} servings`}
+                      </span>
+                    </div>
+                  </div>
+                  <br>
+                  {recipe.dietary && recipe.dietary.length > 0 && (
+                    <div class="icon-wrapper">
+                      <svg class="icon"><use href="#icon-dietary"></use></svg>
+                      <div>
+                        <strong>Dietary:</strong>
+                        <span class="recipe__highlight">
+                          {recipe.dietary.join(', ')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+                <!-- end RecipeInfos -->
+                
+                <!-- RecipeIngredients -->
+                <h3 class="recipe__separator txt-xxl">Ingredients</h3>
+                <div id="recipe-ingredients" class="recipe__interact-list">
+                  {recipe.ingredients && recipe.ingredients.map((ingredient, index) => (
+                    <div>
+                      <span 
+                        id={`ingredient-num-${index + 1}`} 
+                        class="recipe__interact-list-number notranslate txt-l" 
+                        role="button" 
+                        tabindex="0"
+                        onclick={`toggleClass('ingredient-num-${index + 1}', 'selected'); toggleClass('ingredient-content-${index + 1}', 'selected')`}
+                      >
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <span id={`ingredient-content-${index + 1}`} class="recipe__interact-list-content">
+                        {ingredient}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <!-- end RecipeIngredients -->
+                
+                <!-- RecipeInstructions -->
+                <h3 class="recipe__separator txt-xxl">Instructions</h3>
+                <div id="recipe-instructions" class="recipe__interact-list">
+                  {recipe.instructions && recipe.instructions.map((instruction, index) => (
+                    <div id={`instruction-${index + 1}`}>
+                      <span
+                        id={`instruction-num-${index + 1}`} 
+                        class="recipe__interact-list-number notranslate txt-l" 
+                        title={`Step ${index + 1}`}
+                        role="button" 
+                        tabindex="0"
+                        onclick={`toggleClass('instruction-num-${index + 1}', 'selected'); toggleClass('instruction-content-${index + 1}', 'selected');`}
+                      >
+                        Step {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <br><br>
+                      <p id={`instruction-content-${index + 1}`} class="recipe__interact-list-content">
+                        {instruction}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <!-- end RecipeInstructions -->
+                
+                <!-- RecipeNotes -->
+                {recipe.notes && recipe.notes.length > 0 && (
+                  <>
+                    <h3 class="recipe__separator txt-xxl">Notes</h3>
+                    <ol id="recipe-notes" class="recipe__static-list">
+                      {recipe.notes.map((note) => (
+                        <li>{note}</li>
+                      ))}
+                    </ol>
+                  </>
+                )}
+                <!-- end RecipeNotes -->
+                
+                <!-- RecipeEquipments -->
+                {recipe.equipment && recipe.equipment.length > 0 && (
+                  <>
+                    <h3 class="recipe__separator txt-xxl">Tools You'll Need</h3>
+                    <ul id="recipe-equipments">
+                      {recipe.equipment.map((tool) => (
+                        <li>{tool}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                <!-- end RecipeEquipments -->
+                
+                <!-- RecipeAllergyInfo -->
+                {recipe.allergyInfo && recipe.allergyInfo.length > 0 && (
+                  <>
+                    <h3 class="recipe__separator txt-xxl">Allergy Information</h3>
+                    <details id="recipe-allergy-info" class="recipe__details">
+                      <summary class="recipe__details-summary">Please check ingredients for potential allergens and consult a health professional if in doubt.</summary>
+                      <ul class="recipe__details-content">
+                        {recipe.allergyInfo.map((allergen) => (
+                          <li>{allergen}</li>
+                        ))}
+                      </ul>
+                    </details>
+                  </>
+                )}
+                <!-- end RecipeAllergyInfo -->
+                
+                <!-- RecipeNutrition -->
+                {recipe.nutrition && (
+                  <>
+                    <h3 class="recipe__separator txt-xxl">Nutrition Facts (Per Serving)</h3>
+                    <details id="recipe-nutrition" class="recipe__details">
+                      <summary class="recipe__details-summary">It is important to consider this information as approximate and not to use it as definitive health advice.</summary>
+                      <ul class="recipe__details-content">
+                        {recipe.nutrition.calories && (
+                          <li>
+                            <strong>Calories:</strong>
+                            <span class="recipe__highlight">{recipe.nutrition.calories}</span>
+                          </li>
+                        )}
+                        {recipe.nutrition.fat && (
+                          <li>
+                            <strong>Total Fat:</strong>
+                            <span class="recipe__highlight">{recipe.nutrition.fat} g</span>
+                          </li>
+                        )}
+                        {recipe.nutrition.carbs && (
+                          <li>
+                            <strong>Total Carbohydrate:</strong>
+                            <span class="recipe__highlight">{recipe.nutrition.carbs} g</span>
+                          </li>
+                        )}
+                        {recipe.nutrition.protein && (
+                          <li>
+                            <strong>Protein:</strong>
+                            <span class="recipe__highlight">{recipe.nutrition.protein} g</span>
+                          </li>
+                        )}
+                      </ul>
+                    </details>
+                  </>
+                )}
+                <!-- end RecipeNutrition -->
+                
+              </div>
+            </section>
+            <!-- end Recipe -->
+          </div>
+          <!-- end ContentMain -->
+          
+          <!-- ContentSideBar -->
+          <aside class="template-main-sidebar__sidebar">
+            <!-- Author -->
+            {author && (
+              <div class="author">
+                <div class="author__img">
+                  {authorImageUrl && (
+                    <a href={`/authors/${author.slug.current}`} title={`${author.name} - ${author.bio2 || 'Recipe Author'}`}>
+                      <img width="480" height="480" alt={author.name} loading="lazy" decoding="async" 
+                        src={authorImageUrl} />
+                    </a>
+                  )}
+                </div>
+                <div class="author__body">
+                  <a class="author__title txt-xl" href={`/authors/${author.slug.current}`} title={`${author.name} - ${author.bio2 || 'Recipe Author'}`}>
+                    {author.name}
+                  </a>
+                  <p class="txt-m">{author.bio2 || 'Passionate home cook sharing delicious recipes.'}</p>
+                  
+                  {siteSettings?.socialMedia && (
+                    <div class="social">
+                      <div class="social__title txt-l">Follow us on social media</div>
+                      <div class="social__items">
+                        {siteSettings.socialMedia.facebook && (
+                          <a class="social__item" target="_blank" href={siteSettings.socialMedia.facebook} rel="noopener noreferrer" title="Facebook">
+                            <svg><use href="#icon-facebook"></use></svg>
+                          </a>
+                        )}
+                        {siteSettings.socialMedia.instagram && (
+                          <a class="social__item" target="_blank" href={siteSettings.socialMedia.instagram} rel="noopener noreferrer" title="Instagram">
+                            <svg><use href="#icon-instagram"></use></svg>
+                          </a>
+                        )}
+                        {siteSettings.socialMedia.pinterest && (
+                          <a class="social__item" target="_blank" href={siteSettings.socialMedia.pinterest} rel="noopener noreferrer" title="Pinterest">
+                            <svg><use href="#icon-pinterest"></use></svg>
+                          </a>
+                        )}
+                        {siteSettings.socialMedia.twitter && (
+                          <a class="social__item" target="_blank" href={siteSettings.socialMedia.twitter} rel="noopener noreferrer" title="Twitter">
+                            <svg><use href="#icon-twitter"></use></svg>
+                          </a>
+                        )}
+                        {siteSettings.socialMedia.youtube && (
+                          <a class="social__item" target="_blank" href={siteSettings.socialMedia.youtube} rel="noopener noreferrer" title="YouTube">
+                            <svg><use href="#icon-youtube"></use></svg>
+                          </a>
+                        )}
+                        {siteSettings.socialMedia.email && (
+                          <a class="social__item" href={`mailto:${siteSettings.socialMedia.email}`} title="Email">
+                            <svg><use href="#icon-email"></use></svg>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            <!-- end Author -->
+            
+            <!-- RelatedEntries -->
+            <div class="related_entries">
+              <h2 class="related_entries__title txt-xl">You Might Also Like</h2>
+              
+              {relatedRecipes && relatedRecipes.map((relatedRecipe) => {
+                const relatedImageUrl = getOptimizedImageUrl(relatedRecipe.mainImage, { width: 120, fit: 'cover' });
+                return (
+                  <a class="related_entries__item" href={`/recipes/${relatedRecipe.slug.current}`} title={relatedRecipe.title}>
+                    
+                    {relatedImageUrl && (
+                      <img class="related_entries__item-img" width="480" height="480" alt={relatedRecipe.mainImage?.alt || relatedRecipe.title} loading="lazy" decoding="async" src={relatedImageUrl} />
+                    )}
+                    
+                    <strong class="related_entries__item-content txt-l">{relatedRecipe.title}</strong>
+                  </a>
+                );
+              })}
+            </div>
+            <!-- end RelatedEntries -->
+          </aside>
+          <!-- end ContentSideBar -->
+        </div>
+      </div>
+    </section>
+    <!-- end Content -->
+  </main>
+
+  <Footer siteName={siteName} siteDomain={siteDomain} siteSettings={siteSettings} />
+  
+  <script>
+    function scrollToElement(id) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+    
+    function toggleClass(elementId, className) {
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.classList.toggle(className);
+      }
+    }
+    
+    function toggleOffcanvas() {
+      // Mobile menu toggle functionality
+      const offcanvas = document.getElementById('offcanvas');
+      if (offcanvas) {
+        offcanvas.classList.toggle('offcanvas--open');
+      }
+    }
+  </script>
+</body>
+</html> 

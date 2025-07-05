@@ -1,0 +1,93 @@
+---
+interface Props {
+  siteName: string;
+  siteTagline: string;
+}
+
+const { siteName, siteTagline } = Astro.props;
+---
+
+<header id="header" class="header">
+  <div class="container">
+    <nav class="header__wrapper txt-l">
+      <a class="header__brand" href="/" title="Easy, Delicious Recipes for Every Family Meal">
+        <img class="logo" width="200" height="70" src="/assets/drawable/logo.svg" alt="My Homemade Recipe">
+      </a>
+      <ul class="header__menu">
+        <li class="header__menu-item d-none d-xl-block">
+          <a class="icon-wrapper " href="/categories" title="All Categories">
+            <svg class="icon"><use href="#icon-categories"></use></svg>
+            <span>Categories</span>
+          </a>
+        </li>
+        <li class="header__menu-item d-none d-xl-block">
+          <a class="icon-wrapper " href="/explore" title="Explore">
+            <svg class="icon"><use href="#icon-explore"></use></svg>
+            <span>Explore</span>
+          </a>
+        </li>
+        <li class="header__menu-item d-none d-xl-block">
+          <a class="icon-wrapper " href="/about" title="About">
+            <svg class="icon"><use href="#icon-about"></use></svg>
+            <span>About</span>
+          </a>
+        </li>
+        <li class="header__menu-item d-none d-xl-block">
+          <a class="icon-wrapper " href="/contact" title="Contact Us">
+            <svg class="icon"><use href="#icon-contact"></use></svg>
+            <span>Contact</span>
+          </a>
+        </li>
+        <li class="header__menu-item d-none d-xl-block">
+          <a class="icon-wrapper " href="/search" title="Quick &amp; Easy Search">
+            <svg class="icon icon--medium"><use href="#icon-search"></use></svg>
+          </a>
+        </li>
+        <li class="header__menu-item">
+          <div class="d-xl-none">
+            <button onclick="toggleOffcanvas()" class="icon-wrapper" type="button" aria-label="Toggle Offcanvas">
+              <svg class="icon icon--medium"><use href="#icon-menu"></use></svg>
+            </button>
+          </div>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<!-- Offcanvas Mobile Menu -->
+<nav id="offcanvas" class="offcanvas">
+  <button onclick="toggleOffcanvas()" class="offcanvas__exit" type="button" aria-label="Close Menu">
+    <svg class="icon icon--large"><use href="#icon-close"></use></svg>
+  </button>
+  <ul class="offcanvas__menu">
+    <li class="offcanvas__menu-item">
+      <a href="/categories" title="All Categories">Categories</a>
+    </li>
+    <li class="offcanvas__menu-item">
+      <a href="/explore" title="Explore">Explore</a>
+    </li>
+    <li class="offcanvas__menu-item">
+      <a href="/about" title="About">About</a>
+    </li>
+    <li class="offcanvas__menu-item">
+      <a href="/contact" title="Contact Us">Contact</a>
+    </li>
+    <li class="offcanvas__menu-item">
+      <a href="/search" title="Quick & Easy Search">Search</a>
+    </li>
+  </ul>
+</nav>
+
+<script>
+  function toggleOffcanvas() {
+    const offcanvas = document.getElementById('offcanvas');
+    if (offcanvas.classList.contains('offcanvas--open')) {
+      offcanvas.classList.remove('offcanvas--open');
+      offcanvas.classList.add('offcanvas--close');
+    } else {
+      offcanvas.classList.remove('offcanvas--close');
+      offcanvas.classList.add('offcanvas--open');
+    }
+  }
+</script> 

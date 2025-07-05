@@ -1,0 +1,149 @@
+---
+interface Props {
+  siteName: string;
+  siteDomain: string;
+  siteSettings?: any;
+}
+
+const { siteName, siteDomain, siteSettings } = Astro.props;
+---
+
+<footer id="footer" class="footer">
+  <div class="footer__body">
+    <div class="container">
+      <ul class="footer__nav txt-l">
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/" title="Easy, Delicious Recipes for Every Family Meal">
+            <svg class="icon"><use href="#icon-home"></use></svg>
+            <span>Home</span>
+          </a>
+        </li>
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/authors" title="All Authors">
+            <svg class="icon"><use href="#icon-authors"></use></svg>
+            <span>Authors</span>
+          </a>
+        </li>
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/categories" title="All Categories">
+            <svg class="icon"><use href="#icon-categories"></use></svg>
+            <span>Categories</span>
+          </a>
+        </li>
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/tags" title="All Tags">
+            <svg class="icon"><use href="#icon-tags"></use></svg>
+            <span>Tags</span>
+          </a>
+        </li>
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/gems" title="Our Top Picks">
+            <svg class="icon"><use href="#icon-gems"></use></svg>
+            <span>Top Picks</span>
+          </a>
+        </li>
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/explore" title="Explore">
+            <svg class="icon"><use href="#icon-explore"></use></svg>
+            <span>Explore</span>
+          </a>
+        </li>
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/articles" title="All Articles">
+            <svg class="icon"><use href="#icon-articles"></use></svg>
+            <span>Articles</span>
+          </a>
+        </li>
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/recipes" title="All Recipes">
+            <svg class="icon"><use href="#icon-recipes"></use></svg>
+            <span>Recipes</span>
+          </a>
+        </li>
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/about" title="About">
+            <svg class="icon"><use href="#icon-about"></use></svg>
+            <span>About</span>
+          </a>
+        </li>
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/privacy" title="Privacy &amp; Policy">
+            <svg class="icon"><use href="#icon-privacy"></use></svg>
+            <span>Privacy Policy</span>
+          </a>
+        </li>
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/faq" title="Frequently Asked Questions">
+            <svg class="icon"><use href="#icon-faq"></use></svg>
+            <span>FAQs</span>
+          </a>
+        </li>
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/contact" title="Contact Us">
+            <svg class="icon"><use href="#icon-contact"></use></svg>
+            <span>Contact</span>
+          </a>
+        </li>
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/search" title="Quick &amp; Easy Search">
+            <svg class="icon"><use href="#icon-search"></use></svg>
+            <span>Search</span>
+          </a>
+        </li>
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/sitemap.xml" title="Sitemap">
+            <svg class="icon"><use href="#icon-sitemap"></use></svg>
+            <span>Sitemap</span>
+          </a>
+        </li>
+        <li class="footer__nav-item">
+          <a class="icon-wrapper" href="/feed.xml" title="Feed">
+            <svg class="icon"><use href="#icon-feed"></use></svg>
+            <span>Feed</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer__footer">
+    <div class="social">
+      <div class="social__items">
+        {siteSettings?.socialMedia?.facebook && (
+          <a class="social__item" target="_blank" href={siteSettings.socialMedia.facebook} rel="noopener noreferrer" title="Facebook">
+            <svg><use href="#icon-facebook"></use></svg>
+          </a>
+        )}
+        {siteSettings?.socialMedia?.instagram && (
+          <a class="social__item" target="_blank" href={siteSettings.socialMedia.instagram} rel="noopener noreferrer" title="Instagram">
+            <svg><use href="#icon-instagram"></use></svg>
+          </a>
+        )}
+        {siteSettings?.socialMedia?.pinterest && (
+          <a class="social__item" target="_blank" href={siteSettings.socialMedia.pinterest} rel="noopener noreferrer" title="Pinterest">
+            <svg><use href="#icon-pinterest"></use></svg>
+          </a>
+        )}
+        {siteSettings?.socialMedia?.twitter && (
+          <a class="social__item" target="_blank" href={siteSettings.socialMedia.twitter} rel="noopener noreferrer" title="Twitter">
+            <svg><use href="#icon-twitter"></use></svg>
+          </a>
+        )}
+        {siteSettings?.socialMedia?.youtube && (
+          <a class="social__item" target="_blank" href={siteSettings.socialMedia.youtube} rel="noopener noreferrer" title="YouTube">
+            <svg><use href="#icon-youtube"></use></svg>
+          </a>
+        )}
+        {siteSettings?.socialMedia?.email && (
+          <a class="social__item" href={`mailto:${siteSettings.socialMedia.email}`} title="Email">
+            <svg><use href="#icon-email"></use></svg>
+          </a>
+        )}
+      </div>
+    </div>
+    <div class="footer__copyright txt-s">
+      <span>{siteName}. All rights reserved.</span>
+      <br>
+      <span>V6.0</span>
+    </div>
+  </div>
+</footer> 

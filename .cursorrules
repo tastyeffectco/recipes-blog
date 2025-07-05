@@ -1,0 +1,138 @@
+# Cursor Rules for Minimal Astro Recipe Site
+
+## 🚫 BLOCKED - Never Add These
+
+### CSS Frameworks & Libraries
+- NO Tailwind CSS, Bootstrap, Bulma, Foundation, or any CSS framework
+- NO CSS-in-JS libraries (styled-components, emotion, etc.)
+- NO utility-first CSS systems
+- NO CSS preprocessor libraries beyond basic functionality
+- Use only custom CSS written by hand in .css files
+
+### JavaScript & Client-Side Features
+- NO Astro client directives (`client:load`, `client:idle`, `client:visible`, etc.)
+- NO client-side JavaScript unless explicitly requested
+- NO React, Vue, Svelte, or any JS framework components
+- NO JSX syntax unless explicitly requested
+- NO `<script>` tags in .astro files unless explicitly requested
+- NO hydration or interactive components
+- NO WebComponents or custom elements
+- NO service workers or PWA features
+
+### Astro Integrations & Automated Features
+- NO @astrojs/* integrations (except @astrojs/node for build only)
+- NO sitemap generation (@astrojs/sitemap)
+- NO analytics integrations
+- NO RSS feed generation
+- NO image optimization plugins
+- NO compression or minification plugins beyond Astro's built-in
+- NO SEO plugins (write SEO manually)
+- NO deployment adapters (use static output only)
+
+### Runtime Features
+- NO API routes or server-side functions
+- NO dynamic data fetching at runtime
+- NO database connections at runtime
+- NO external API calls except Sanity at build time
+- NO authentication or user management
+- NO forms with backend processing
+- NO websockets or real-time features
+
+## ⚠️ WARNINGS - Think Twice
+
+### HTML Structure
+- WARN when using `<div>` or `<span>` with classes when semantic HTML exists
+- Prefer: `<main>`, `<section>`, `<article>`, `<aside>`, `<header>`, `<footer>`, `<nav>`
+- WARN when missing proper heading hierarchy (h1 → h2 → h3 → h4)
+- WARN when images lack proper `alt` attributes
+- WARN when not using semantic form elements
+
+### CSS Practices
+- WARN when using non-descriptive class names
+- Prefer semantic, readable class names over abbreviated ones
+- WARN when CSS could be simplified or consolidated
+- WARN when responsive design principles are ignored
+
+## ✅ ALLOWED - Core Requirements
+
+### Static Data Fetching
+- Sanity.io data fetching at build time only
+- GROQ queries in getStaticPaths() and top-level script sections
+- Static JSON imports if needed
+- Build-time environment variables
+
+### Clean HTML/CSS
+- Custom CSS in separate .css files
+- Semantic HTML5 elements
+- Responsive design with media queries
+- Clean, readable class naming
+- Proper accessibility attributes
+
+### Core Astro Features
+- .astro component syntax (without client directives)
+- Static site generation
+- File-based routing
+- Component props and slots
+- CSS scoping with `<style>` tags (but prefer external CSS)
+- Build-time TypeScript (if needed)
+
+### Required Project Structure
+```
+src/
+├── pages/           # Static pages only
+├── components/      # Server-side components only  
+├── styles/          # Custom CSS files
+└── lib/            # Utilities and Sanity client
+public/             # Static assets only
+```
+
+## 📋 Development Guidelines
+
+### When Making Changes
+1. **ALWAYS** ensure output is pure HTML+CSS
+2. **NEVER** add dependencies without explicit permission
+3. **VERIFY** no client-side JavaScript in build output
+4. **CHECK** that semantic HTML is used over divs
+5. **CONFIRM** all data fetching happens at build time only
+
+### File Creation Rules
+- Create .astro files for pages and components
+- Create .css files for styling
+- Create .js files only for build-time utilities
+- NO .jsx, .tsx, .vue, .svelte files
+- NO package.json scripts beyond basic Astro commands
+
+### Code Quality
+- Write semantic, accessible HTML
+- Use descriptive variable and function names
+- Keep components small and focused
+- Document any complex build-time logic
+- Follow consistent indentation and formatting
+
+### SEO & Performance
+- Manually write all meta tags
+- Optimize images with proper sizing and formats
+- Use semantic HTML for accessibility
+- Ensure fast loading with minimal CSS/HTML
+- Test output with browser dev tools
+
+## 🎯 Project Goals Reminder
+
+This is a **minimal, static recipe site** that:
+- Pulls recipes from Sanity.io at build time
+- Generates clean, semantic HTML
+- Uses custom CSS for styling
+- Has zero client-side JavaScript
+- Deploys as static files to Cloudflare Pages
+- Maintains excellent SEO and performance
+
+## 🚨 Red Flags - Stop and Ask
+
+If you see requests for:
+- "Add animations" → Ask if CSS-only animations are acceptable
+- "Make it interactive" → Clarify what type of interaction is needed
+- "Add a framework" → Explain why it's blocked
+- "Connect to an API" → Confirm it's build-time only
+- "Add analytics" → Suggest manual implementation only
+
+Remember: **When in doubt, prefer the simpler, more static solution.** 

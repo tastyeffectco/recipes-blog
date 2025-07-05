@@ -1,0 +1,245 @@
+---
+import { getFeaturedRecipes, getSiteSettings } from '../lib/sanity.js';
+import SVGSymbols from '../components/SVGSymbols.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/main.css';
+
+const recipes = await getFeaturedRecipes();
+const siteSettings = await getSiteSettings();
+
+// Use site settings for enhanced metadata
+const siteName = siteSettings?.siteName || 'Recipe Blog';
+const siteTagline = siteSettings?.tagline || 'Delicious homemade recipes';
+const siteDomain = siteSettings?.domain || 'localhost:3000';
+const siteUrl = `https://${siteDomain}`;
+const pageTitle = `${siteName} - ${siteTagline}`;
+const pageDescription = siteSettings?.defaultDescription || 'A collection of delicious recipes';
+
+// Get image URL from Sanity image asset
+const getImageUrl = (image) => {
+  if (!image || !image.asset) return null;
+  
+  // If we have a direct URL, use it
+  if (image.asset.url) {
+    return image.asset.url;
+  }
+  
+  // If we have an asset reference, build the URL
+  if (image.asset._ref) {
+    const ref = image.asset._ref;
+    const [, id, dimensions, format] = ref.match(/^image-([a-f\d]+)-(\d+x\d+)-(\w+)$/);
+    return `https://cdn.sanity.io/images/${import.meta.env.SANITY_PROJECT_ID}/production/${id}-${dimensions}.${format}`;
+  }
+  
+  return null;
+};
+---
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="generator" content={Astro.generator} />
+  
+  <title>{pageTitle}</title>
+  <meta name="description" content={pageDescription} />
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={Astro.url} />
+  <meta property="og:title" content={pageTitle} />
+  <meta property="og:description" content={pageDescription} />
+  {siteSettings?.ogImage && <meta property="og:image" content={getImageUrl(siteSettings.ogImage)} />}
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary" />
+  <meta property="twitter:url" content={Astro.url} />
+  <meta property="twitter:title" content={pageTitle} />
+  <meta property="twitter:description" content={pageDescription} />
+  {siteSettings?.ogImage && <meta property="twitter:image" content={getImageUrl(siteSettings.ogImage)} />}
+  
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <SVGSymbols />
+  <Header siteName={siteName} siteTagline={siteTagline} />
+  <main>
+    <header class="article-header">
+      <h1>{siteName}</h1>
+      <p class="article-excerpt">{siteTagline}</p>
+    </header>
+    
+    <section class="recipes-grid">
+      {recipes.map((recipe) => {
+        const imageUrl = getImageUrl(recipe.mainImage);
+        return (
+          <article class="recipe-card">
+            <a href={`/recipes/${recipe.slug.current}`}>
+              {imageUrl && (
+                <img 
+                  src={imageUrl} 
+                  alt={recipe.mainImage?.alt || recipe.title} 
+                  class="recipe-card-image"
+                  loading="lazy"
+                />
+              )}
+              <div class="recipe-card-content">
+                <h2 class="recipe-card-title">{recipe.title}</h2>
+                {recipe.excerpt && (
+                  <p class="recipe-card-excerpt">{recipe.excerpt}</p>
+                )}
+                <div class="recipe-card-meta">
+                  {recipe.prepTime && (
+                    <span class="meta-badge">⏱️ {recipe.prepTime}min</span>
+                  )}
+                  {recipe.servings && (
+                    <span class="meta-badge">🍽️ {recipe.servings}</span>
+                  )}
+                  {recipe.difficulty && (
+                    <span class="meta-badge">📊 {recipe.difficulty}</span>
+                  )}
+                </div>
+                {recipe.categories && recipe.categories.length > 0 && (
+                  <div class="recipe-card-categories">
+                    {recipe.categories.map((category) => (
+                      <span class="category">{category.title}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </a>
+          </article>
+        );
+      })}
+    </section>
+  </main>
+
+  <Footer siteName={siteName} siteDomain={siteDomain} siteSettings={siteSettings} />
+
+</body>
+</html>
+
+<style>
+  .recipes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .recipe-card {
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .recipe-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .recipe-card a {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  
+  .recipe-card-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+  }
+  
+  .recipe-card-content {
+    padding: 1.5rem;
+  }
+  
+  .recipe-card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #333;
+  }
+  
+  .recipe-card-excerpt {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    line-height: 1.4;
+  }
+  
+  .recipe-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .meta-badge {
+    font-size: 0.8rem;
+    color: #666;
+    background-color: #f0f0f0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+  
+  .recipe-card-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .no-recipes {
+    text-align: center;
+    padding: 3rem 1rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin-top: 2rem;
+  }
+  
+  .no-recipes h2 {
+    color: #333;
+    margin-bottom: 1rem;
+  }
+  
+  .no-recipes p {
+    color: #666;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+  
+  .no-recipes ul,
+  .no-recipes ol {
+    text-align: left;
+    max-width: 400px;
+    margin: 1rem auto;
+  }
+  
+  .no-recipes li {
+    margin-bottom: 0.5rem;
+    color: #666;
+  }
+  
+  .no-recipes code {
+    background-color: #e9ecef;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+  }
+  
+  @media (max-width: 768px) {
+    .recipes-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    
+    .no-recipes {
+      padding: 2rem 1rem;
+    }
+  }
+</style> 
