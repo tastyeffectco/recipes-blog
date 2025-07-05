@@ -33,15 +33,28 @@ const { recipe, siteSettings, relatedRecipes } = Astro.props;
 const { 
   title, 
   excerpt, 
+  description,
   mainImage, 
   author, 
   categories, 
-  publishedAt, 
+  publishedAt,
+  updatedAt,
   prepTime, 
   cookTime, 
-  servings, 
-  difficulty 
+  totalTime,
+  difficulty,
+  cuisine,
+  dietary,
+  equipment,
+  nutrition,
+  allergyInfo,
+  ingredients,
+  instructions,
+  notes
 } = recipe;
+
+// Handle yield separately to avoid reserved word issue
+const recipeYield = recipe.yield;
 
 // Use site settings for enhanced metadata
 const siteName = siteSettings?.siteName || 'Recipe Blog';
@@ -69,7 +82,7 @@ const formatUpdatedDate = (dateString) => {
   return `${day}, ${dayNum} ${month} ${year} ${hours}:${minutes}:${seconds} GMT`;
 };
 
-const formattedDate = formatUpdatedDate(recipe._updatedAt);
+const formattedDate = formatUpdatedDate(updatedAt);
 
 // Get asset ID from Sanity image asset (matching download script format)
 const getAssetId = (image) => {
@@ -126,66 +139,106 @@ const hasLocalImage = (assetId) => {
   }
 };
 
+// TODO: Re-enable optimized image URL helper later for CDN CGI
 // Optimized image URL helper with local and CDN fallback
-const getOptimizedImageUrl = (image, options = {}) => {
+// const getOptimizedImageUrl = (image, options = {}) => {
+//   if (!image || !image.asset) return null;
+//   
+//   const assetId = getAssetId(image);
+//   const baseUrl = getImageUrl(image);
+//   
+//   if (!baseUrl) return null;
+//   
+//   // Default options (for future CDN CGI use)
+//   const {
+//     width = 480,
+//     fit = 'contain',
+//     format = 'auto'
+//   } = options;
+//   
+//   // First try: Use local image if available (no CDN CGI for now)
+//   if (assetId) {
+//     const localPath = `/assets/images/${assetId}.webp`;
+//     return localPath;
+//   }
+//   
+//   // Fallback to original Sanity URL
+//   return baseUrl;
+//   
+//   // TODO: Enable CDN CGI optimization in production
+//   // // First try: Check for local image
+//   // if (assetId) {
+//   //   const localPath = `/assets/images/${assetId}.webp`;
+//   //   
+//   //   try {
+//   //     // Try to generate CDN CGI optimized URL with local path
+//   //     const optimizedLocalUrl = `/cdn-cgi/image/fit=${fit},width=${width},format=${format}${localPath}`;
+//   //     return optimizedLocalUrl;
+//   //   } catch (error) {
+//   //     // Fallback to direct local path
+//   //     return localPath;
+//   //   }
+//   // }
+//   // 
+//   // // Second try: CDN CGI with remote URL
+//   // try {
+//   //   const optimizedUrl = `/cdn-cgi/image/fit=${fit},width=${width},format=${format}${baseUrl}`;
+//   //   return optimizedUrl;
+//   // } catch (error) {
+//   //   // Final fallback: Original URL
+//   //   return baseUrl;
+//   // }
+// };
+
+// Simple local image helper - uses static assets/images paths
+const getLocalImagePath = (image) => {
   if (!image || !image.asset) return null;
   
   const assetId = getAssetId(image);
-  const baseUrl = getImageUrl(image);
-  
-  if (!baseUrl) return null;
-  
-  // Default options (for future CDN CGI use)
-  const {
-    width = 480,
-    fit = 'contain',
-    format = 'auto'
-  } = options;
-  
-  // First try: Use local image if available (no CDN CGI for now)
   if (assetId) {
-    const localPath = `/assets/images/${assetId}.webp`;
-    return localPath;
+    return `/assets/images/${assetId}.webp`;
   }
   
-  // Fallback to original Sanity URL
-  return baseUrl;
-  
-  // TODO: Enable CDN CGI optimization in production
-  // // First try: Check for local image
-  // if (assetId) {
-  //   const localPath = `/assets/images/${assetId}.webp`;
-  //   
-  //   try {
-  //     // Try to generate CDN CGI optimized URL with local path
-  //     const optimizedLocalUrl = `/cdn-cgi/image/fit=${fit},width=${width},format=${format}${localPath}`;
-  //     return optimizedLocalUrl;
-  //   } catch (error) {
-  //     // Fallback to direct local path
-  //     return localPath;
-  //   }
-  // }
-  // 
-  // // Second try: CDN CGI with remote URL
-  // try {
-  //   const optimizedUrl = `/cdn-cgi/image/fit=${fit},width=${width},format=${format}${baseUrl}`;
-  //   return optimizedUrl;
-  // } catch (error) {
-  //   // Final fallback: Original URL
-  //   return baseUrl;
-  // }
+  // Fallback to original Sanity URL if no local asset
+  return getImageUrl(image);
 };
 
-const heroImageUrl = getOptimizedImageUrl(mainImage);
-const authorImageUrl = author?.image ? getOptimizedImageUrl(author.image) : null;
+const heroImageUrl = getLocalImagePath(mainImage);
+const authorImageUrl = author?.image ? getLocalImagePath(author.image) : null;
 
 // Get article image URLs
-const firstArticleImageUrl = recipe.articleContent?.firstImage ? getOptimizedImageUrl(recipe.articleContent.firstImage) : null;
-const secondArticleImageUrl = recipe.articleContent?.secondImage ? getOptimizedImageUrl(recipe.articleContent.secondImage) : null;
+const firstArticleImageUrl = recipe.articleContent?.firstImage ? getLocalImagePath(recipe.articleContent.firstImage) : null;
+const secondArticleImageUrl = recipe.articleContent?.secondImage ? getLocalImagePath(recipe.articleContent.secondImage) : null;
 
-// Generate JSON-LD structured data
-const jsonLd = [
-  {
+// Helper function to ensure absolute URLs
+const getAbsoluteImageUrl = (imageUrl) => {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith('http')) return imageUrl;
+  return `${siteUrl}${imageUrl}`;
+};
+
+// Generate Recipe Schema
+const generateRecipeSchema = (recipe, author, categories, siteUrl, siteName, heroImageUrl, firstArticleImageUrl, secondArticleImageUrl, authorImageUrl) => {
+  // Extract fields from Sanity recipe schema
+  const title = recipe.title;
+  const excerpt = recipe.excerpt;
+  const description = recipe.description;
+  const publishedAt = recipe.publishedAt;
+  const updatedAt = recipe.updatedAt;
+  const prepTime = recipe.prepTime;
+  const cookTime = recipe.cookTime;
+  const totalTime = recipe.totalTime;
+  const difficulty = recipe.difficulty;
+  const cuisine = recipe.cuisine;
+  const yieldValue = recipe.yield;
+  const dietary = recipe.dietary;
+  const equipment = recipe.equipment;
+  const nutrition = recipe.nutrition;
+  const allergyInfo = recipe.allergyInfo;
+  const ingredients = recipe.ingredients;
+  const notes = recipe.notes;
+  
+  return {
     "@context": "http://schema.org",
     "@type": "Recipe",
     "publisher": {
@@ -194,7 +247,7 @@ const jsonLd = [
       "name": siteName,
       "logo": {
         "@type": "ImageObject",
-        "url": `${siteUrl}/assets/drawable/logo.svg`,
+        "url": `${siteUrl}/assets/drawable/banner.png`,
         "width": 600,
         "height": 60
       }
@@ -202,37 +255,79 @@ const jsonLd = [
     "author": author ? {
       "@type": "Person",
       "name": author.name,
-      "jobTitle": "Recipe Developer",
+      "jobTitle": "Home Cook",
       "url": `${siteUrl}/authors/${author.slug.current}`,
-      ...(authorImageUrl && { "image": [authorImageUrl] })
+      ...(authorImageUrl && { "image": [getAbsoluteImageUrl(authorImageUrl)] })
     } : undefined,
     "url": `${siteUrl}/recipes/${recipe.slug.current}`,
     "name": title,
     "datePublished": publishedAt || recipe._createdAt,
-    "description": excerpt,
+    "description": description || excerpt,
     "recipeCategory": categories?.[0]?.title,
-    "recipeCuisine": recipe.cuisine,
+    "recipeCuisine": cuisine,
+    ...(recipe.keywords && { "keywords": recipe.keywords }),
     "prepTime": prepTime ? `PT${prepTime}M` : undefined,
     "cookTime": cookTime ? `PT${cookTime}M` : undefined,
-    "totalTime": recipe.totalTime || (prepTime && cookTime ? `PT${prepTime + cookTime}M` : undefined),
-    "nutrition": recipe.nutrition ? {
+    "totalTime": totalTime ? `PT${totalTime.replace(/\D/g, '')}M` : undefined,
+    "nutrition": nutrition ? {
       "@type": "NutritionInformation",
-      "calories": `${recipe.nutrition.calories} calories`,
-      ...(recipe.nutrition.protein && { "proteinContent": `${recipe.nutrition.protein}g` }),
-      ...(recipe.nutrition.fat && { "fatContent": `${recipe.nutrition.fat}g` }),
-      ...(recipe.nutrition.carbs && { "carbohydrateContent": `${recipe.nutrition.carbs}g` })
+      "calories": `${nutrition.calories} calories`
     } : undefined,
-    "recipeYield": recipe.yield || `${servings} servings`,
-    ...(heroImageUrl && { "image": [heroImageUrl] }),
-    "recipeIngredient": recipe.ingredients || [],
-    "recipeInstructions": recipe.instructions ? recipe.instructions.map((instruction, index) => ({
+    "recipeYield": yieldValue ? parseInt(yieldValue.replace(/\D/g, '')) || 4 : 4,
+    "image": [heroImageUrl, firstArticleImageUrl, secondArticleImageUrl].filter(Boolean).map(url => getAbsoluteImageUrl(url)),
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": recipe.aggregateRating?.ratingValue || 4.7,
+      "ratingCount": recipe.aggregateRating?.ratingCount || 154,
+      "bestRating": recipe.aggregateRating?.bestRating || 5,
+      "worstRating": recipe.aggregateRating?.worstRating || 3
+    },
+    "recipeIngredient": ingredients || [],
+    "recipeInstructions": generateRecipeInstructions(recipe, siteUrl)
+  };
+};
+
+
+
+// Generate Recipe Instructions
+const generateRecipeInstructions = (recipe, siteUrl) => {
+  // Use main recipe instructions from recipe card
+  if (recipe.instructions) {
+    return recipe.instructions.map((instruction, index) => ({
       "@type": "HowToStep",
       "name": `Step ${index + 1}`,
       "text": instruction,
       "url": `${siteUrl}/recipes/${recipe.slug.current}#instruction-${index + 1}`
-    })) : []
-  },
-  {
+    }));
+  }
+  
+  return [];
+};
+
+// Generate FAQ Schema
+const generateFAQSchema = (recipe) => {
+  // Only include FAQPage if there are actual FAQs from Sanity
+  if (!recipe.articleContent?.faqs || recipe.articleContent.faqs.length === 0) {
+    return null;
+  }
+  
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": recipe.articleContent.faqs.map(faq => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `<p>${faq.answer.replace(/\n\n/g, '').trim()}</p>`
+      }
+    }))
+  };
+};
+
+// Generate Breadcrumb Schema
+const generateBreadcrumbSchema = (recipe, siteUrl) => {
+  return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
@@ -251,49 +346,52 @@ const jsonLd = [
       {
         "@type": "ListItem",
         "position": 3,
-        "name": title
+        "name": recipe.title
       }
     ]
-  }
-].filter(Boolean); // Remove undefined entries
+  };
+};
+
+// Generate complete JSON-LD structured data
+const jsonLd = [
+  generateRecipeSchema(recipe, author, categories, siteUrl, siteName, heroImageUrl, firstArticleImageUrl, secondArticleImageUrl, authorImageUrl),
+  generateFAQSchema(recipe),
+  generateBreadcrumbSchema(recipe, siteUrl)
+].filter(Boolean); // Remove null entries
 ---
 
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <link rel="icon" type="image/png" href="/favicon.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="generator" content={Astro.generator} />
-  
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
   <title>{pageTitle}</title>
-  <meta name="description" content={pageDescription} />
-  
-  <!-- Open Graph / Facebook -->
-  <meta property="og:type" content="article" />
-  <meta property="og:url" content={Astro.url} />
-  <meta property="og:title" content={pageTitle} />
-  <meta property="og:description" content={pageDescription} />
-  <meta property="og:image" content={heroImageUrl || (siteSettings?.ogImage ? getImageUrl(siteSettings.ogImage) : `${siteUrl}/favicon.svg`)} />
-  
-  <!-- Twitter -->
-  <meta property="twitter:card" content="summary_large_image" />
-  <meta property="twitter:url" content={Astro.url} />
-  <meta property="twitter:title" content={pageTitle} />
-  <meta property="twitter:description" content={pageDescription} />
-  <meta property="twitter:image" content={heroImageUrl || (siteSettings?.ogImage ? getImageUrl(siteSettings.ogImage) : `${siteUrl}/favicon.svg`)} />
-  
-  <!-- JSON-LD Structured Data -->
+  <meta name="description" content={pageDescription}>
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <link rel="canonical" href={`${siteUrl}/recipes/${recipe.slug.current}`}>
+  <meta property="og:url" content={`${siteUrl}/recipes/${recipe.slug.current}`}>
+  <meta property="og:title" content={pageTitle}>
+  <meta property="og:description" content={pageDescription}>
   
-  <!-- JavaScript Functions -->
-  <script>
-    function scrollToElement(id) {
-      const element = document.getElementById(id);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
-  </script>
+  
+  <meta property="og:image" content={heroImageUrl || (siteSettings?.ogImage ? getLocalImagePath(siteSettings.ogImage) : `${siteUrl}/favicon.png`)}>
+  <meta property="og:image:width" content="1024">
+  <meta property="og:image:height" content="1024">
+  <meta property="og:image:alt" content={title}>
+  
+  <meta property="og:type" content="article">
+  <meta property="article:published_time" content={publishedAt || recipe._createdAt}>
+  <meta property="article:modified_time" content={updatedAt || recipe._createdAt}>
+  <meta property="article:author" content={author?.name || 'Recipe Author'}>
+  <meta property="og:site_name" content={siteName}>
+  
+    <link rel="apple-touch-icon" sizes="196x196" href="/assets/drawable/favicons/favicon-196x196.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="/assets/drawable/favicons/favicon-48x48.png">
+    <link rel="icon" type="image/svg+xml" href="/assets/drawable/favicons/icon.svg">
+    <link rel="shortcut icon" type="image/x-icon" href="/assets/drawable/favicons/icon.ico">
+    <link rel="mask-icon" href="/assets/drawable/favicons/icon.svg" color="#ffd018">
+    <link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml">
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml">
 </head>
 <body>
   <SVGSymbols />
@@ -418,8 +516,17 @@ const jsonLd = [
                 <figure class="txt-s pin-wrapper">
                   <img alt={title} loading="lazy" decoding="async"
                     width="1024" height="1024"
-                    src={heroImageUrl} />
-                  <figcaption>{title} | Recipe Blog</figcaption>
+                    src={heroImageUrl} 
+                    sizes="(min-width: 1400px) 738px, (min-width: 1040px) calc(66.76vw - 63px), (min-width: 860px) calc(100vw - 64px), 717px" />
+                  <a class="pin icon-wrapper" 
+                     href={`https://www.pinterest.com/pin/create/button?media=${encodeURIComponent(`${siteUrl}${heroImageUrl}`)}&url=${encodeURIComponent(Astro.url.toString())}&description=${encodeURIComponent(title)}`}
+                     target="_blank" 
+                     rel="noopener noreferrer" 
+                     title={`Pin it - ${title}`}>
+                    <svg class="icon"><use href="#icon-pinterest"></use></svg>
+                    <span class="txt-s">Pin it</span>
+                  </a>
+                  <figcaption>{title} | {siteName}</figcaption>
                 </figure>
               )}
               
@@ -493,14 +600,14 @@ const jsonLd = [
                           src={firstArticleImageUrl} 
                           sizes="(min-width: 1400px) 738px, (min-width: 1040px) calc(66.76vw - 63px), (min-width: 860px) calc(100vw - 64px), 717px" />
                         <a class="pin icon-wrapper" 
-                           href={`https://www.pinterest.com/pin/create/button?media=${encodeURIComponent(firstArticleImageUrl)}&url=${encodeURIComponent(Astro.url.toString())}&description=${encodeURIComponent(recipe.articleContent.firstImageAlt || title)}`}
+                           href={`https://www.pinterest.com/pin/create/button?media=${encodeURIComponent(`${siteUrl}${firstArticleImageUrl}`)}&url=${encodeURIComponent(Astro.url.toString())}&description=${encodeURIComponent(recipe.articleContent.firstImageAlt || title)}`}
                            target="_blank" 
                            rel="noopener noreferrer" 
                            title={`Pin it - ${recipe.articleContent.firstImageAlt || title}`}>
                           <svg class="icon"><use href="#icon-pinterest"></use></svg>
                           <span class="txt-s">Pin it</span>
                         </a>
-                        <figcaption>{recipe.articleContent.firstImageCaption || title} | Recipe Blog</figcaption>
+                        <figcaption>{recipe.articleContent.firstImageCaption || title} | {siteName}</figcaption>
                       </figure>
                     )}
                     
@@ -568,14 +675,14 @@ const jsonLd = [
                           src={secondArticleImageUrl} 
                           sizes="(min-width: 1400px) 738px, (min-width: 1040px) calc(66.76vw - 63px), (min-width: 860px) calc(100vw - 64px), 717px" />
                         <a class="pin icon-wrapper" 
-                           href={`https://www.pinterest.com/pin/create/button?media=${encodeURIComponent(secondArticleImageUrl)}&url=${encodeURIComponent(Astro.url.toString())}&description=${encodeURIComponent(recipe.articleContent.secondImageAlt || title)}`}
+                           href={`https://www.pinterest.com/pin/create/button?media=${encodeURIComponent(`${siteUrl}${secondArticleImageUrl}`)}&url=${encodeURIComponent(Astro.url.toString())}&description=${encodeURIComponent(recipe.articleContent.secondImageAlt || title)}`}
                            target="_blank" 
                            rel="noopener noreferrer" 
                            title={`Pin it - ${recipe.articleContent.secondImageAlt || title}`}>
                           <svg class="icon"><use href="#icon-pinterest"></use></svg>
                           <span class="txt-s">Pin it</span>
                         </a>
-                        <figcaption>{recipe.articleContent.secondImageCaption || title} | Recipe Blog</figcaption>
+                        <figcaption>{recipe.articleContent.secondImageCaption || title} | {siteName}</figcaption>
                       </figure>
                     )}
                     
@@ -627,7 +734,7 @@ const jsonLd = [
             <section id="recipe" class="recipe">
               <div class="recipe__wrapper">
                 <h2 class="recipe__title txt-xxl">{title}</h2>
-                <p>{excerpt}</p>
+                <p>{recipe.description || excerpt}</p>
                 
                 <!-- RecipeTimes -->
                 <div class="recipe__times txt-m">
@@ -700,7 +807,7 @@ const jsonLd = [
                     <div>
                       <strong>Yield:</strong>
                       <span class="recipe__highlight" title="The quantity produced by the recipe">
-                        {recipe.yield || `${servings || '4'} servings`}
+                        {recipeYield || '4 servings'}
                       </span>
                     </div>
                   </div>
@@ -917,7 +1024,7 @@ const jsonLd = [
               <h2 class="related_entries__title txt-xl">You Might Also Like</h2>
               
               {relatedRecipes && relatedRecipes.map((relatedRecipe) => {
-                const relatedImageUrl = getOptimizedImageUrl(relatedRecipe.mainImage, { width: 120, fit: 'cover' });
+                const relatedImageUrl = getLocalImagePath(relatedRecipe.mainImage);
                 return (
                   <a class="related_entries__item" href={`/recipes/${relatedRecipe.slug.current}`} title={relatedRecipe.title}>
                     

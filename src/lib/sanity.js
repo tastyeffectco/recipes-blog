@@ -70,6 +70,7 @@ export const getFeaturedRecipesQuery = groq`
     title,
     slug,
     excerpt,
+    description,
     ${imageFragment},
     prepTime,
     cookTime,
@@ -88,6 +89,7 @@ export const getRecipeBySlugQuery = groq`
     title,
     slug,
     excerpt,
+    description,
     ${imageFragment},
     prepTime,
     cookTime,
@@ -176,6 +178,7 @@ export const getRecipesByCategoryQuery = groq`
     title,
     slug,
     excerpt,
+    description,
     ${imageFragment},
     prepTime,
     cookTime,
@@ -206,6 +209,7 @@ export const getRelatedRecipesQuery = groq`
     title,
     slug,
     excerpt,
+    description,
     ${imageFragment}
   }
 `;
@@ -323,6 +327,7 @@ export async function getRelatedRecipes(currentSlug) {
         title: recipe.title,
         slug: recipe.slug,
         excerpt: recipe.excerpt,
+        description: recipe.description,
         mainImage: recipe.mainImage
       }));
   }

@@ -5,6 +5,7 @@ export const mockRecipes = [
     title: 'Classic Chocolate Chip Cookies',
     slug: { current: 'chocolate-chip-cookies' },
     excerpt: 'Perfectly chewy chocolate chip cookies with a crispy edge and soft center.',
+    description: 'Learn how to make the perfect Classic Chocolate Chip Cookies with this foolproof recipe that delivers soft, chewy centers and crispy edges every time.',
     mainImage: {
       asset: {
         url: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=800&h=600&fit=crop'
@@ -225,6 +226,7 @@ export const mockRecipes = [
     title: 'Creamy Chicken Alfredo',
     slug: { current: 'chicken-alfredo' },
     excerpt: 'Rich and creamy chicken alfredo with tender pasta and perfectly seasoned chicken.',
+    description: 'Master the art of making restaurant-quality Creamy Chicken Alfredo at home with this step-by-step recipe featuring tender chicken and silky smooth sauce.',
     mainImage: {
       asset: {
         url: 'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=800&h=600&fit=crop'
@@ -308,6 +310,7 @@ export const mockRecipes = [
     title: 'Fresh Garden Salad',
     slug: { current: 'fresh-garden-salad' },
     excerpt: 'A vibrant mix of fresh greens, vegetables, and herbs with a light vinaigrette.',
+    description: 'Create a colorful and nutritious Fresh Garden Salad with crisp vegetables and homemade vinaigrette dressing that\'s perfect for any meal.',
     mainImage: {
       asset: {
         url: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=600&fit=crop'
@@ -389,6 +392,7 @@ export const mockRecipes = [
     title: 'Homemade Pizza Margherita',
     slug: { current: 'pizza-margherita' },
     excerpt: 'Classic Italian pizza with fresh tomatoes, mozzarella, and basil on homemade dough.',
+    description: 'Discover how to make authentic Homemade Pizza Margherita from scratch with this traditional Italian recipe featuring fresh mozzarella and aromatic basil.',
     mainImage: {
       asset: {
         url: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&h=600&fit=crop'

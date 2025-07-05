@@ -241,6 +241,18 @@ async function downloadAssets() {
           }
         },
         articleContent{
+          firstImage{
+            asset->{
+              _id,
+              url
+            }
+          },
+          secondImage{
+            asset->{
+              _id,
+              url
+            }
+          },
           images[]{
             asset->{
               _id,

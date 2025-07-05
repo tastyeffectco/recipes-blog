@@ -56,38 +56,82 @@ const { siteName, siteTagline } = Astro.props;
 </header>
 
 <!-- Offcanvas Mobile Menu -->
-<nav id="offcanvas" class="offcanvas">
-  <button onclick="toggleOffcanvas()" class="offcanvas__exit" type="button" aria-label="Close Menu">
-    <svg class="icon icon--large"><use href="#icon-close"></use></svg>
+<div id="offcanvas" class="offcanvas offcanvas--close">
+  <button onclick="toggleOffcanvas()" class="offcanvas__exit" aria-label="Toggle Offcanvas">
+    <svg class="icon medium"><use href="#icon-cancel"></use></svg>
   </button>
   <ul class="offcanvas__menu">
-    <li class="offcanvas__menu-item">
-      <a href="/categories" title="All Categories">Categories</a>
+    <li class="offcanvas__menu-item ">
+      <a class="icon-wrapper" href="/" title="Family-Friendly Recipes That Everyone Will Love">
+        <svg class="icon"><use href="#icon-home"></use></svg>
+        <span>Home</span>
+      </a>
     </li>
-    <li class="offcanvas__menu-item">
-      <a href="/explore" title="Explore">Explore</a>
+    <li class="offcanvas__menu-item ">
+      <a class="icon-wrapper" href="/search" title="Quick &amp; Easy Search">
+        <svg class="icon"><use href="#icon-search"></use></svg>
+        <span>Search</span>
+      </a>
     </li>
-    <li class="offcanvas__menu-item">
-      <a href="/about" title="About">About</a>
+    <li class="offcanvas__menu-item ">
+      <a class="icon-wrapper" href="/authors" title="All Authors">
+        <svg class="icon"><use href="#icon-authors"></use></svg>
+        <span>Authors</span>
+      </a>
     </li>
-    <li class="offcanvas__menu-item">
-      <a href="/contact" title="Contact Us">Contact</a>
+    <li class="offcanvas__menu-item ">
+      <a class="icon-wrapper" href="/categories" title="All categories">
+        <svg class="icon"><use href="#icon-categories"></use></svg>
+        <span>Categories</span>
+      </a>
     </li>
-    <li class="offcanvas__menu-item">
-      <a href="/search" title="Quick & Easy Search">Search</a>
+    <li class="offcanvas__menu-item ">
+      <a class="icon-wrapper" href="/explore" title="Explore">
+        <svg class="icon"><use href="#icon-explore"></use></svg>
+        <span>Explore</span>
+      </a>
+    </li>
+    <li class="offcanvas__menu-item ">
+      <a class="icon-wrapper" href="/articles" title="All Articles">
+        <svg class="icon"><use href="#icon-articles"></use></svg>
+        <span>Articles</span>
+      </a>
+    </li>
+    <li class="offcanvas__menu-item ">
+      <a class="icon-wrapper" href="/recipes" title="All Recipes">
+        <svg class="icon"><use href="#icon-recipes"></use></svg>
+        <span>Recipes</span>
+      </a>
+    </li>
+    <li class="offcanvas__menu-item ">
+      <a class="icon-wrapper" href="/about" title="About">
+        <svg class="icon"><use href="#icon-about"></use></svg>
+        <span>About</span>
+      </a>
+    </li>
+    <li class="offcanvas__menu-item ">
+      <a class="icon-wrapper" href="/faq" title="Frequently Asked Questions">
+        <svg class="icon"><use href="#icon-faq"></use></svg>
+        <span>FAQs</span>
+      </a>
+    </li>
+    <li class="offcanvas__menu-item ">
+      <a class="icon-wrapper" href="/privacy" title="Privacy &amp; Policy">
+        <svg class="icon"><use href="#icon-privacy"></use></svg>
+        <span>Privacy Policy</span>
+      </a>
+    </li>
+    <li class="offcanvas__menu-item ">
+      <a class="icon-wrapper" href="/contact" title="Contact Us">
+        <svg class="icon"><use href="#icon-contact"></use></svg>
+        <span>Contact</span>
+      </a>
     </li>
   </ul>
-</nav>
+</div>
 
-<script>
-  function toggleOffcanvas() {
-    const offcanvas = document.getElementById('offcanvas');
-    if (offcanvas.classList.contains('offcanvas--open')) {
-      offcanvas.classList.remove('offcanvas--open');
-      offcanvas.classList.add('offcanvas--close');
-    } else {
-      offcanvas.classList.remove('offcanvas--close');
-      offcanvas.classList.add('offcanvas--open');
-    }
-  }
+<script is:inline>
+function toggleClass(e,t){var s=document.getElementById(e);s&&s.classList.toggle(t)}
+function scrollToElement(e){const t=document.getElementById(e);t&&t.scrollIntoView({behavior:"smooth"})}
+function toggleOffcanvas(){const e=document.getElementById("offcanvas");e&&(e.classList.contains("offcanvas--close")?(e.classList.remove("offcanvas--close"),e.classList.add("offcanvas--open")):(e.classList.remove("offcanvas--open"),e.classList.add("offcanvas--close")))}
 </script> 
