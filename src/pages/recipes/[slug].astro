@@ -536,7 +536,7 @@ const jsonLd = [
                   <>
                     <!-- Intro Paragraph -->
                     {recipe.articleContent.introParagraph && (
-                      <p>{recipe.articleContent.introParagraph}</p>
+                      <p set:html={recipe.articleContent.introParagraph} />
                     )}
                     
                     <!-- Why You'll Love This Recipe -->
@@ -548,7 +548,7 @@ const jsonLd = [
                         </h2>
                         <ul>
                           {recipe.articleContent.whyLoveThis.map((point) => (
-                            <li>{point}</li>
+                            <li set:html={point} />
                           ))}
                         </ul>
                       </aside>
@@ -556,7 +556,7 @@ const jsonLd = [
                     
                     <!-- Second Paragraph -->
                     {recipe.articleContent.secondParagraph && (
-                      <p>{recipe.articleContent.secondParagraph}</p>
+                      <p set:html={recipe.articleContent.secondParagraph} />
                     )}
                     
                     <!-- Ingredients Section -->
@@ -566,7 +566,7 @@ const jsonLd = [
                         <ul>
                           {recipe.articleContent.ingredientsList.map((ingredient) => (
                             <li>
-                              <strong>{ingredient.ingredientTitle}:</strong> {ingredient.ingredientDetail}
+                              <strong set:html={ingredient.ingredientTitle} />: <span set:html={ingredient.ingredientDetail} />
                             </li>
                           ))}
                         </ul>
@@ -580,8 +580,8 @@ const jsonLd = [
                         <dl>
                           {recipe.articleContent.instructionsList.map((step) => (
                             <>
-                              <dt><strong>{step.stepTitle}:</strong></dt>
-                              <dd>{step.stepDetail}</dd>
+                              <dt><strong set:html={step.stepTitle} />:</dt>
+                              <dd set:html={step.stepDetail} />
                             </>
                           ))}
                         </dl>
@@ -620,7 +620,7 @@ const jsonLd = [
                         </h2>
                         <ul>
                           {recipe.articleContent.mustKnow.map((tip) => (
-                            <li>{tip}</li>
+                            <li set:html={tip} />
                           ))}
                         </ul>
                       </aside>
@@ -628,14 +628,14 @@ const jsonLd = [
                     
                     <!-- Third Paragraph -->
                     {recipe.articleContent.thirdParagraph && (
-                      <p>{recipe.articleContent.thirdParagraph}</p>
+                      <p set:html={recipe.articleContent.thirdParagraph} />
                     )}
                     
                     <!-- Storage Tips -->
                     {recipe.articleContent.storageTips && (
                       <>
                         <h2 id="paragraph-11" class="txt-xxl">Storage Tips</h2>
-                        <p>{recipe.articleContent.storageTips}</p>
+                        <p set:html={recipe.articleContent.storageTips} />
                       </>
                     )}
                     
@@ -643,7 +643,7 @@ const jsonLd = [
                     {recipe.articleContent.substitutionTips && (
                       <>
                         <h2 id="paragraph-13" class="txt-xxl">Ingredient Substitutions</h2>
-                        <p>{recipe.articleContent.substitutionTips}</p>
+                        <p set:html={recipe.articleContent.substitutionTips} />
                       </>
                     )}
                     
@@ -651,7 +651,7 @@ const jsonLd = [
                     {recipe.articleContent.servingSuggestions && (
                       <>
                         <h2 id="paragraph-15" class="txt-xxl">Serving Suggestions</h2>
-                        <p>{recipe.articleContent.servingSuggestions}</p>
+                        <p set:html={recipe.articleContent.servingSuggestions} />
                       </>
                     )}
                     
@@ -659,7 +659,7 @@ const jsonLd = [
                     {recipe.articleContent.culturalContext && (
                       <>
                         <h2 id="paragraph-17" class="txt-xxl">Cultural and Historical Context</h2>
-                        <p>{recipe.articleContent.culturalContext}</p>
+                        <p set:html={recipe.articleContent.culturalContext} />
                       </>
                     )}
                     
@@ -695,7 +695,7 @@ const jsonLd = [
                         </h2>
                         <ul>
                           {recipe.articleContent.proTips.map((tip) => (
-                            <li>{tip}</li>
+                            <li set:html={tip} />
                           ))}
                         </ul>
                       </aside>
@@ -703,7 +703,7 @@ const jsonLd = [
                     
                     <!-- Fourth Paragraph -->
                     {recipe.articleContent.fourthParagraph && (
-                      <p>{recipe.articleContent.fourthParagraph}</p>
+                      <p set:html={recipe.articleContent.fourthParagraph} />
                     )}
                     
                     <!-- FAQs -->
@@ -713,8 +713,8 @@ const jsonLd = [
                         <dl>
                           {recipe.articleContent.faqs.map((faq, index) => (
                             <>
-                              <dt id={`faq-${index + 1}`}>→ {faq.question}</dt>
-                              <dd><p>{faq.answer}</p></dd>
+                              <dt id={`faq-${index + 1}`}>→ <span set:html={faq.question} /></dt>
+                              <dd><p set:html={faq.answer} /></dd>
                             </>
                           ))}
                         </dl>
@@ -734,7 +734,7 @@ const jsonLd = [
             <section id="recipe" class="recipe">
               <div class="recipe__wrapper">
                 <h2 class="recipe__title txt-xxl">{title}</h2>
-                <p>{recipe.description || excerpt}</p>
+                <p set:html={recipe.description || excerpt} />
                 
                 <!-- RecipeTimes -->
                 <div class="recipe__times txt-m">
@@ -841,9 +841,7 @@ const jsonLd = [
                       >
                         {String(index + 1).padStart(2, '0')}
                       </span>
-                      <span id={`ingredient-content-${index + 1}`} class="recipe__interact-list-content">
-                        {ingredient}
-                      </span>
+                      <span id={`ingredient-content-${index + 1}`} class="recipe__interact-list-content" set:html={ingredient} />
                     </div>
                   ))}
                 </div>
@@ -865,9 +863,7 @@ const jsonLd = [
                         Step {String(index + 1).padStart(2, '0')}
                       </span>
                       <br><br>
-                      <p id={`instruction-content-${index + 1}`} class="recipe__interact-list-content">
-                        {instruction}
-                      </p>
+                      <p id={`instruction-content-${index + 1}`} class="recipe__interact-list-content" set:html={instruction} />
                     </div>
                   ))}
                 </div>
@@ -879,7 +875,7 @@ const jsonLd = [
                     <h3 class="recipe__separator txt-xxl">Notes</h3>
                     <ol id="recipe-notes" class="recipe__static-list">
                       {recipe.notes.map((note) => (
-                        <li>{note}</li>
+                        <li set:html={note} />
                       ))}
                     </ol>
                   </>
@@ -892,7 +888,7 @@ const jsonLd = [
                     <h3 class="recipe__separator txt-xxl">Tools You'll Need</h3>
                     <ul id="recipe-equipments">
                       {recipe.equipment.map((tool) => (
-                        <li>{tool}</li>
+                        <li set:html={tool} />
                       ))}
                     </ul>
                   </>
@@ -907,7 +903,7 @@ const jsonLd = [
                       <summary class="recipe__details-summary">Please check ingredients for potential allergens and consult a health professional if in doubt.</summary>
                       <ul class="recipe__details-content">
                         {recipe.allergyInfo.map((allergen) => (
-                          <li>{allergen}</li>
+                          <li set:html={allergen} />
                         ))}
                       </ul>
                     </details>
@@ -975,7 +971,7 @@ const jsonLd = [
                   <a class="author__title txt-xl" href={`/authors/${author.slug.current}`} title={`${author.name} - ${author.bio2 || 'Recipe Author'}`}>
                     {author.name}
                   </a>
-                  <p class="txt-m">{author.bio2 || 'Passionate home cook sharing delicious recipes.'}</p>
+                  <p class="txt-m" set:html={author.bio2 || 'Passionate home cook sharing delicious recipes.'} />
                   
                   {siteSettings?.socialMedia && (
                     <div class="social">

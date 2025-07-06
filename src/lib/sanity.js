@@ -6,6 +6,7 @@ import { mockRecipes, mockAuthors, mockCategories } from './mockData.js';
 const projectId = process.env.SANITY_PROJECT_ID || import.meta.env.SANITY_PROJECT_ID;
 const dataset = process.env.SANITY_DATASET || import.meta.env.SANITY_DATASET || 'production';
 const token = process.env.SANITY_TOKEN || import.meta.env.SANITY_TOKEN;
+const siteId = process.env.SITE_ID || import.meta.env.SITE_ID || 'default-site';
 
 // Create client only if we have a project ID (token is optional for public data)
 export const sanityClient = projectId ? createClient({
@@ -15,6 +16,9 @@ export const sanityClient = projectId ? createClient({
   useCdn: true,
   apiVersion: '2023-11-01'
 }) : null;
+
+// Export siteId for use in other modules
+export { siteId };
 
 // Fragment for author data
 const authorFragment = groq`
@@ -46,7 +50,7 @@ const imageFragment = groq`
 
 // Get all recipes with full data
 export const getAllRecipesQuery = groq`
-  *[_type == "recipe"] | order(publishedAt desc) {
+  *[_type == "recipe" && siteId->siteId.current == $siteId] | order(publishedAt desc) {
     _id,
     title,
     slug,
@@ -65,7 +69,7 @@ export const getAllRecipesQuery = groq`
 
 // Get featured/recent recipes for homepage
 export const getFeaturedRecipesQuery = groq`
-  *[_type == "recipe"] | order(publishedAt desc)[0...8] {
+  *[_type == "recipe" && siteId->siteId.current == $siteId] | order(publishedAt desc)[0...8] {
     _id,
     title,
     slug,
@@ -84,7 +88,7 @@ export const getFeaturedRecipesQuery = groq`
 
 // Get single recipe by slug
 export const getRecipeBySlugQuery = groq`
-  *[_type == "recipe" && slug.current == $slug][0] {
+  *[_type == "recipe" && slug.current == $slug && siteId->siteId.current == $siteId][0] {
     _id,
     title,
     slug,
@@ -154,26 +158,26 @@ export const getRecipeBySlugQuery = groq`
 
 // Get all recipe slugs for static generation
 export const getAllRecipeSlugsQuery = groq`
-  *[_type == "recipe" && defined(slug.current)]{
+  *[_type == "recipe" && defined(slug.current) && siteId->siteId.current == $siteId]{
     "slug": slug.current
   }
 `;
 
 // Get all categories
 export const getAllCategoriesQuery = groq`
-  *[_type == "category"] | order(title asc) {
+  *[_type == "category" && siteId->siteId.current == $siteId] | order(title asc) {
     _id,
     title,
     slug,
     description,
     image,
-    "recipeCount": count(*[_type == "recipe" && references(^._id)])
+    "recipeCount": count(*[_type == "recipe" && references(^._id) && siteId->siteId.current == $siteId])
   }
 `;
 
 // Get recipes by category
 export const getRecipesByCategoryQuery = groq`
-  *[_type == "recipe" && references(*[_type == "category" && slug.current == $categorySlug]._id)] | order(publishedAt desc) {
+  *[_type == "recipe" && references(*[_type == "category" && slug.current == $categorySlug && siteId->siteId.current == $siteId]._id) && siteId->siteId.current == $siteId] | order(publishedAt desc) {
     _id,
     title,
     slug,
@@ -192,19 +196,20 @@ export const getRecipesByCategoryQuery = groq`
 
 // Get authors
 export const getAllAuthorsQuery = groq`
-  *[_type == "author"] | order(name asc) {
+  *[_type == "author" && siteId->siteId.current == $siteId] | order(name asc) {
     _id,
     name,
     slug,
     image,
     bio,
-    "recipeCount": count(*[_type == "recipe" && references(^._id)])
+    bio2,
+    "recipeCount": count(*[_type == "recipe" && references(^._id) && siteId->siteId.current == $siteId])
   }
 `;
 
 // Get random related recipes (excluding current recipe)
 export const getRelatedRecipesQuery = groq`
-  *[_type == "recipe" && slug.current != $currentSlug] | order(_updatedAt desc)[0...6] {
+  *[_type == "recipe" && slug.current != $currentSlug && siteId->siteId.current == $siteId] | order(_updatedAt desc)[0...6] {
     _id,
     title,
     slug,
@@ -216,7 +221,7 @@ export const getRelatedRecipesQuery = groq`
 
 // Get site settings
 export const getSiteSettingsQuery = groq`
-  *[_type == "siteSettings" && published == true][0] {
+  *[_type == "siteSettings" && siteId.current == $siteId && published == true][0] {
     siteId,
     domain,
     siteName,
@@ -262,7 +267,7 @@ export async function getAllRecipes() {
     console.warn('⚠️  Using mock data. Configure Sanity in .env file for real data.');
     return mockRecipes;
   }
-  return await sanityClient.fetch(getAllRecipesQuery);
+  return await sanityClient.fetch(getAllRecipesQuery, { siteId });
 }
 
 export async function getFeaturedRecipes() {
@@ -270,7 +275,7 @@ export async function getFeaturedRecipes() {
     console.warn('⚠️  Using mock data. Configure Sanity in .env file for real data.');
     return mockRecipes.slice(0, 8); // Return up to 8 recipes
   }
-  return await sanityClient.fetch(getFeaturedRecipesQuery);
+  return await sanityClient.fetch(getFeaturedRecipesQuery, { siteId });
 }
 
 export async function getRecipeBySlug(slug) {
@@ -278,7 +283,7 @@ export async function getRecipeBySlug(slug) {
     console.warn('⚠️  Using mock data. Configure Sanity in .env file for real data.');
     return mockRecipes.find(recipe => recipe.slug.current === slug) || null;
   }
-  return await sanityClient.fetch(getRecipeBySlugQuery, { slug });
+  return await sanityClient.fetch(getRecipeBySlugQuery, { slug, siteId });
 }
 
 export async function getAllRecipeSlugs() {
@@ -286,7 +291,7 @@ export async function getAllRecipeSlugs() {
     console.warn('⚠️  Using mock data. Configure Sanity in .env file for real data.');
     return mockRecipes.map(recipe => ({ slug: recipe.slug.current }));
   }
-  return await sanityClient.fetch(getAllRecipeSlugsQuery);
+  return await sanityClient.fetch(getAllRecipeSlugsQuery, { siteId });
 }
 
 export async function getAllCategories() {
@@ -294,7 +299,7 @@ export async function getAllCategories() {
     console.warn('⚠️  Using mock data. Configure Sanity in .env file for real data.');
     return mockCategories;
   }
-  return await sanityClient.fetch(getAllCategoriesQuery);
+  return await sanityClient.fetch(getAllCategoriesQuery, { siteId });
 }
 
 export async function getRecipesByCategory(categorySlug) {
@@ -304,7 +309,7 @@ export async function getRecipesByCategory(categorySlug) {
       recipe.categories.some(cat => cat.slug.current === categorySlug)
     );
   }
-  return await sanityClient.fetch(getRecipesByCategoryQuery, { categorySlug });
+  return await sanityClient.fetch(getRecipesByCategoryQuery, { categorySlug, siteId });
 }
 
 export async function getAllAuthors() {
@@ -312,7 +317,7 @@ export async function getAllAuthors() {
     console.warn('⚠️  Using mock data. Configure Sanity in .env file for real data.');
     return mockAuthors;
   }
-  return await sanityClient.fetch(getAllAuthorsQuery);
+  return await sanityClient.fetch(getAllAuthorsQuery, { siteId });
 }
 
 export async function getRelatedRecipes(currentSlug) {
@@ -331,39 +336,39 @@ export async function getRelatedRecipes(currentSlug) {
         mainImage: recipe.mainImage
       }));
   }
-  return await sanityClient.fetch(getRelatedRecipesQuery, { currentSlug });
+  return await sanityClient.fetch(getRelatedRecipesQuery, { currentSlug, siteId });
 }
 
 export async function getSiteSettings() {
   if (!sanityClient) {
     console.warn('⚠️  Using mock data. Configure Sanity in .env file for real data.');
     return {
-      siteId: { current: 'recipes-by-abdel' },
-      domain: 'recipesbyadel.com',
-      siteName: 'Recipes By Abdel',
+      siteId: { current: siteId },
+      domain: 'localhost:4321',
+      siteName: 'My Recipe Site',
       tagline: 'Delicious homemade recipes for every family meal',
       logo: {
         asset: {
           _ref: 'image-logo',
           _type: 'reference'
         },
-        alt: 'Recipes By Abdel Logo'
+        alt: 'My Recipe Site Logo'
       },
       favicon: {
         asset: {
           _ref: 'image-favicon',
           _type: 'reference'
         },
-        alt: 'Recipes By Abdel Favicon'
+        alt: 'My Recipe Site Favicon'
       },
-      defaultTitle: 'Recipes By Abdel - Delicious Homemade Recipes',
+      defaultTitle: 'My Recipe Site - Delicious Homemade Recipes',
       defaultDescription: 'Discover amazing homemade recipes with step-by-step instructions. Perfect for family meals, special occasions, and everyday cooking.',
       ogImage: {
         asset: {
           _ref: 'image-og',
           _type: 'reference'
         },
-        alt: 'Recipes By Abdel - Delicious Homemade Recipes'
+        alt: 'My Recipe Site - Delicious Homemade Recipes'
       },
       theme: {
         primaryColor: '#D54215',
@@ -372,16 +377,16 @@ export async function getSiteSettings() {
         layoutStyle: 'default'
       },
       socialMedia: {
-        facebook: 'https://facebook.com/recipesbyadel',
-        instagram: 'https://instagram.com/recipesbyadel',
-        pinterest: 'https://pinterest.com/recipesbyadel',
-        twitter: 'https://twitter.com/recipesbyadel',
-        youtube: 'https://youtube.com/c/recipesbyadel',
-        email: 'hello@recipesbyadel.com'
+        facebook: 'https://facebook.com/myrecipesite',
+        instagram: 'https://instagram.com/myrecipesite',
+        pinterest: 'https://pinterest.com/myrecipesite',
+        twitter: 'https://twitter.com/myrecipesite',
+        youtube: 'https://youtube.com/c/myrecipesite',
+        email: 'hello@myrecipesite.com'
       },
       googleAnalyticsId: null,
       published: true
     };
   }
-  return await sanityClient.fetch(getSiteSettingsQuery);
+  return await sanityClient.fetch(getSiteSettingsQuery, { siteId });
 } 

@@ -8,17 +8,25 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Get environment variables
-const projectId = "lxetvc5g";
+const projectId = process.env.SANITY_PROJECT_ID || process.env.PUBLIC_SANITY_PROJECT_ID || "lxetvc5g";
 const dataset = process.env.SANITY_DATASET || process.env.PUBLIC_SANITY_DATASET || 'production';
+const siteId = process.env.SITE_ID || process.env.PUBLIC_SITE_ID || 'site1';
 
 console.log('🔄 Starting comprehensive asset download process...');
 console.log(`📋 Project ID: ${projectId ? '✅ Found' : '❌ Missing'}`);
 console.log(`📋 Dataset: ${dataset}`);
+console.log(`📋 Site ID: ${siteId}`);
 
 if (!projectId) {
   console.log('❌ No Sanity project ID found. Please check your .env file.');
   console.log('💡 Required: SANITY_PROJECT_ID=your-project-id');
+  console.log('💡 Required: SITE_ID=your-site-id');
   process.exit(0);
+}
+
+if (!siteId || siteId === 'default-site') {
+  console.log('⚠️  No SITE_ID found, using default-site');
+  console.log('💡 Recommended: SITE_ID=your-site-id');
 }
 
 // Create Sanity client
@@ -166,7 +174,7 @@ async function downloadAssets() {
     // Download site settings assets (logo, favicon)
     console.log('📋 Processing site settings...');
     const siteSettings = await client.fetch(`
-      *[_type == "siteSettings" && published == true][0] {
+      *[_type == "siteSettings" && siteId.current == $siteId && published == true][0] {
         siteName,
         logo{
           asset->{
@@ -183,7 +191,7 @@ async function downloadAssets() {
           }
         }
       }
-    `);
+    `, { siteId });
 
     if (siteSettings) {
       console.log(`✅ Found site settings for: ${siteSettings.siteName}`);
@@ -217,7 +225,7 @@ async function downloadAssets() {
     
     // Query all documents that might have images
     const allDocuments = await client.fetch(`
-      *[_type in ["recipe", "post", "category", "author", "page"]] {
+      *[_type in ["recipe", "post", "category", "author", "page"] && siteId->siteId.current == $siteId] {
         _id,
         _type,
         title,
@@ -274,7 +282,7 @@ async function downloadAssets() {
           }
         }
       }
-    `);
+    `, { siteId });
     
     console.log(`📊 Found ${allDocuments.length} documents to process`);
     

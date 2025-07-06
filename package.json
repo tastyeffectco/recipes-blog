@@ -10,12 +10,16 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "download-assets": "node scripts/download-assets.js"
+    "download-assets": "node scripts/download-assets.js",
+    "generate-recipe": "node scripts/generate-recipe.js"
   },
   "dependencies": {
     "@astrojs/node": "^8.2.0",
+    "@google/generative-ai": "^0.24.1",
     "@sanity/client": "^6.12.3",
     "astro": "^4.3.5",
-    "groq": "^3.23.4"
+    "groq": "^3.23.4",
+    "inquirer": "^12.7.0",
+    "slugify": "^1.6.6"
   }
-} 
+}
